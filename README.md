@@ -1,0 +1,1 @@
+> PDB file segmentation tool, extract specific chains and residue ranges from PDB/MMCIF files.

@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pdb-select"
+dynamic = [""] 
+authors = [
+  {name = "Joe Hoye Dow", email = "luxunisgod123@gmail.com"}
+  ] 
+description = "Visualization & analysis toolkit for AlphaFold3 outputs."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+license-files = ["LICENSE"]
+
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Operating System :: OS Independent"
+]
+
+
+# use pip show to check
+dependencies = [
+  "biopython>=1.87", 
+  "typer>=0.27.1", 
+]
+
+[project.urls]
+Homepage = "https://github.com/MaybeBio/pdb-select"
+Issues = "https://github.com/MaybeBio/pdb-select/issues"
+
+[project.scripts]
+pdb-select = "alphafold3_seqvis_toolkit.cli:app"
