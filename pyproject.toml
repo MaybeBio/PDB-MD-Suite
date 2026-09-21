@@ -4,14 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pdb-select"
-dynamic = [""] 
+version = "0.1.0"
 authors = [
   {name = "Joe Hoye Dow", email = "luxunisgod123@gmail.com"}
   ] 
-description = "Visualization & analysis toolkit for AlphaFold3 outputs."
+description = "PDB file segmentation tool, extract specific chains and residue ranges from PDB/MMCIF files."
 readme = "README.md"
 requires-python = ">=3.9"
-license = { file = "LICENSE" }
+license = "BSD-3-Clause"
 license-files = ["LICENSE"]
 
 classifiers = [
@@ -36,5 +36,8 @@ dependencies = [
 Homepage = "https://github.com/MaybeBio/pdb-select"
 Issues = "https://github.com/MaybeBio/pdb-select/issues"
 
-[project.scripts]
-pdb-select = "alphafold3_seqvis_toolkit.cli:app"
+[project.scripts]                                                                                            
+pdb-select = "src.cli:app"  
+
+[tool.hatch.build.targets.wheel]                                                                             
+packages = ["src"] 
