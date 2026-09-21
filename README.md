@@ -27,6 +27,9 @@ pdb-select --help
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯                                                                        
 ```
 
+> ⚠️ Warning: Sequence index matching to Uniprot only be tested in AlphaFold PDB files. 
+> 
+> Check for SIFTS 
 
 ```bash
 pdb-select select  --help
@@ -48,3 +51,7 @@ example:
 ```bash
 pdb-select select -I znf263_all_hs7_30_0.54_0.37_model_0.cif -O znf263_all_hs7_30_0.54_0.37_model_0_selected.pdb -s A:369-683 -s B -s C -s D -s E -s F -s G -s H -s I -s J -s K:1-47 -s L:29-75 
 ```
+
+change from 
+![](./figs/image1.png) to
+![](./figs/image.png)
