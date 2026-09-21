@@ -17,7 +17,6 @@ This module is used internally by the Bio.PDB.extract() function.
 
 import re
 import warnings
-from typing import Optional
 
 from Bio import BiopythonWarning
 from Bio.PDB.PDBIO import PDBIO
@@ -39,7 +38,7 @@ class SingleChainSelector:
     def __init__(
         self,
         chain_id,
-        regions: Optional[list[tuple[int, int]]] = None,
+        regions: list[tuple[int, int]] | None = None,
         model_id=0,
     ):
         """Initialize the class.

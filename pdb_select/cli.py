@@ -10,7 +10,8 @@ from .SingleChainSelector import SingleChainSelector
 
 app = typer.Typer(help="Segment selector for PDB/MMCIF Structure file", no_args_is_help=True)
 
-
+# Rules for typer: When the app registers only one command and has no callback, this command will be directly promoted to the root command (single-command collapse), and the subcommand layer will no longer exist.
+# Adding @app.callback() explicitly declares "this is a command group"
 @app.callback()
 def main():
     """Segment selector for PDB/MMCIF structure files."""
