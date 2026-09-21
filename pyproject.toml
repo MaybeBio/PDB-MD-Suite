@@ -37,7 +37,7 @@ Homepage = "https://github.com/MaybeBio/pdb-select"
 Issues = "https://github.com/MaybeBio/pdb-select/issues"
 
 [project.scripts]                                                                                            
-pdb-select = "src.cli:app"  
+pdb-select = "pdb_select.cli:app"
 
 [tool.hatch.build.targets.wheel]                                                                             
-packages = ["src"] 
+packages = ["pdb_select"]

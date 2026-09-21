@@ -17,6 +17,7 @@ This module is used internally by the Bio.PDB.extract() function.
 
 import re
 import warnings
+from typing import Optional
 
 from Bio import BiopythonWarning
 from Bio.PDB.PDBIO import PDBIO
@@ -31,12 +32,24 @@ class SingleChainSelector:
     Remove hydrogens, waters and ligands. Only use model 0 by default.
 
     Modified to support multiple regions selected.
+
+    Pass regions=None to keep the whole chain instead of specific ranges.
     """
 
-    def __init__(self, chain_id, regions: list[tuple[int, int]], model_id=0):
-        """Initialize the class."""
+    def __init__(
+        self,
+        chain_id,
+        regions: Optional[list[tuple[int, int]]] = None,
+        model_id=0,
+    ):
+        """Initialize the class.
+
+        A regions of None means "whole chain" and an empty list means "keep
+        nothing"; the two stay distinguishable because consolidate_ranges would
+        collapse both to an empty list otherwise.
+        """
         self.chain_id = chain_id
-        self.regions = consolidate_ranges(regions)
+        self.regions = None if regions is None else consolidate_ranges(regions)
         self.model_id = model_id
 
     def accept_model(self, model):
@@ -63,6 +76,9 @@ class SingleChainSelector:
             warnings.warn(
                 f"WARNING: Icode {icode} at position {resseq}", BiopythonWarning
             )
+        # whole chain: every standard residue is accepted
+        if self.regions is None:
+            return 1
         # or if any(start <= resseq <= end for start, end in self.regions)
         for start, end in self.regions:
             if start <= resseq <= end:
