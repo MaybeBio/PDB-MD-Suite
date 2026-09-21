@@ -1,8 +1,5 @@
 # some utility functions defined
 
-from click import Tuple
-
-
 def consolidate_ranges(ranges: list[tuple[int, int]]) -> list[tuple[int, int]]:
     """
     Description
