@@ -8,7 +8,7 @@ from Bio.PDB import MMCIFParser, PDBIO, PDBParser
 from .MultiChainSelector import MultiChainSelector
 from .SingleChainSelector import SingleChainSelector
 
-app = typer.Typer(help="Segment selector for PDB/MMCIF Structure file", no_args_is_help=True)
+app = typer.Typer(help="Pre- and post-processing toolkit for PDB/MMCIF structure files in molecular dynamics workflows.", no_args_is_help=True)
 
 # Rules for typer: When the app registers only one command and has no callback, this command will be directly promoted to the root command (single-command collapse), and the subcommand layer will no longer exist.
 # Adding @app.callback() explicitly declares "this is a command group"

@@ -1,8 +1,8 @@
-# 🔬 PDB/MMCIF segment selector
+# 🔬 PDB/MMCIF toolkit in Molecular Dynamic Simulation workflows
 
-> Formerly published on PyPI as `pdb-select`. That name is deprecated — use `pdb-md`.
+> [!WARNING]Formerly published on PyPI as `pdb-select`. That name is deprecated — use `pdb-md`.
 
-> PDB file segmentation tool, extract specific chains and residue ranges from PDB/MMCIF files.   
+> Pre- and post-processing toolkit for PDB/MMCIF structure files in molecular dynamics workflows.  
 
 # Installation
 
@@ -29,7 +29,9 @@ pdb-md --help
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯                                                                        
 ```
 
-> ⚠️ Warning: Sequence index matching to Uniprot only be tested in AlphaFold PDB files. 
+## select
+
+> [!WARNING] Sequence index matching to Uniprot only be tested in AlphaFold PDB files. 
 > 
 > Check for SIFTS 
 
@@ -57,3 +59,11 @@ pdb-md select -I znf263_all_hs7_30_0.54_0.37_model_0.cif -O znf263_all_hs7_30_0.
 change from 
 ![](./figs/image1.png) to
 ![](./figs/image.png)
+
+---
+
+## preprocessing for MD simulation
+
+||||
+|--|--|--|
+||||
