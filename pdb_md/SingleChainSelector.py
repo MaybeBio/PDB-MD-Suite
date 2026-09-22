@@ -7,7 +7,7 @@
 # Please see the LICENSE file that should have been included as part of this
 # package.
 #
-# Modifications for pdb-select: Copyright (C) 2026, Joe Hoye Dow
+# Modifications for pdb-md: Copyright (C) 2026, Joe Hoye Dow
 # Licensed under the BSD 3-Clause License (see LICENSE).
 
 """Code for chopping up (dicing) a structure.

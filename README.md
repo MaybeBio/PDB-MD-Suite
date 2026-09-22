@@ -1,19 +1,21 @@
 # 🔬 PDB/MMCIF segment selector
 
+> Formerly published on PyPI as `pdb-select`. That name is deprecated — use `pdb-md`.
+
 > PDB file segmentation tool, extract specific chains and residue ranges from PDB/MMCIF files.   
 
 # Installation
 
 ```bash
-pip install pdb-select
+pip install pdb-md
 ```
 
 # Usage
 
 ```bash
-pdb-select --help
+pdb-md --help
                                                                         
- Usage: pdb-select [OPTIONS] COMMAND [ARGS]...                                                                                                                                          
+ Usage: pdb-md [OPTIONS] COMMAND [ARGS]...                                                                                                                                          
                                                                                                                                                                                         
  Segment selector for PDB/MMCIF Structure file                                                                                                                                          
                                                                                                                                                                                         
@@ -32,9 +34,9 @@ pdb-select --help
 > Check for SIFTS 
 
 ```bash
-pdb-select select  --help
+pdb-md select  --help
                                                                                                                                                                                         
- Usage: pdb-select select [OPTIONS]                                                                                                                                                     
+ Usage: pdb-md select [OPTIONS]                                                                                                                                                     
                                                                                                                                                                                         
  Select segments from a PDB or MMCIF structure file.                                                                                                                                    
                                                                                                                                                                                         
@@ -49,7 +51,7 @@ pdb-select select  --help
 example:
 
 ```bash
-pdb-select select -I znf263_all_hs7_30_0.54_0.37_model_0.cif -O znf263_all_hs7_30_0.54_0.37_model_0_selected.pdb -s A:369-683 -s B -s C -s D -s E -s F -s G -s H -s I -s J -s K:1-47 -s L:29-75 
+pdb-md select -I znf263_all_hs7_30_0.54_0.37_model_0.cif -O znf263_all_hs7_30_0.54_0.37_model_0_selected.pdb -s A:369-683 -s B -s C -s D -s E -s F -s G -s H -s I -s J -s K:1-47 -s L:29-75 
 ```
 
 change from 
