@@ -1,6 +1,7 @@
 # 🔬 PDB/MMCIF toolkit in Molecular Dynamic Simulation workflows
 
-> [!WARNING]Formerly published on PyPI as `pdb-select`. That name is deprecated — use `pdb-md`.
+> [!WARNING]
+> Formerly published on PyPI as `pdb-select`. That name is deprecated — use `pdb-md`.
 
 > Pre- and post-processing toolkit for PDB/MMCIF structure files in molecular dynamics workflows.  
 
@@ -31,7 +32,8 @@ pdb-md --help
 
 ## select
 
-> [!WARNING] Sequence index matching to Uniprot only be tested in AlphaFold PDB files. 
+> [!WARNING] 
+> Sequence index matching to Uniprot only be tested in AlphaFold PDB files. 
 > 
 > Check for SIFTS 
 
