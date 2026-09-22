@@ -30,12 +30,14 @@ pdb-md --help
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯                                                                        
 ```
 
-## select
+## 1️⃣ select
 
 > [!WARNING] 
 > Sequence index matching to Uniprot only be tested in AlphaFold PDB files. 
 > 
 > Check for SIFTS 
+
+`Select segments from a PDB or MMCIF structure file`
 
 ```bash
 pdb-md select  --help
@@ -64,8 +66,11 @@ change from
 
 ---
 
-## preprocessing for MD simulation
+## 2️⃣ preprocessing for MD simulation
 
-||||
-|--|--|--|
-||||
+Here we summarize several important easy to use application for fixing problems in Protein Data Bank files in preparation for simulating them.
+
+|App|Description|Manual| Note |
+|--|--|--| --- |
+|PDBFixer|PDBFixer is an easy to use application for fixing problems in Protein Data Bank files in preparation for simulating them|https://github.com/openmm/pdbfixer <br><br> https://htmlpreview.github.io/?https://github.com/openmm/pdbfixer/blob/master/Manual.html| General purpose tool for fixing PDB files|
+|pdb2gmx|gmx pdb2gmx reads a .pdb (or .gro) file, reads some database files, adds hydrogens to the molecules and generates coordinates in GROMACS (GROMOS), or optionally .pdb, format and a topology in GROMACS format. These files can subsequently be processed to generate a run input file|https://manual.gromacs.org/current/onlinehelp/gmx-pdb2gmx.html| Designed for preparing PDB files for GROMACS simulations, pdb2gmx is a subcommand of GROMACS tool gmx —— `gmx pdb2gmx`, it has several options for preprocessing the pdb file like `-ignh`|
