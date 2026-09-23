@@ -42,18 +42,24 @@ pdb-md --help
 `Select segments from a PDB or MMCIF structure file`
 
 ```bash
-pdb-md select  --help
-                                                                                                                                                                                        
- Usage: pdb-md select [OPTIONS]                                                                                                                                                     
-                                                                                                                                                                                        
- Select segments from a PDB or MMCIF structure file.                                                                                                                                    
-                                                                                                                                                                                        
-╭─ Options ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ *  --input    -I      <path>  Input PDB or MMCIF file [required]                                                                                                                     │
-│    --output   -O      <path>  Output PDB file, defaults to <input stem>_selected.pdb in the current working directory                                                                │
-│ *  --segment  -s      <str>   Segments to select, either 'chain' (whole chain, e.g. A) or 'chain:start-end' (e.g. A:1-10). Repeatable. [required]                                    │
-│    --help                     Show this message and exit.                                                                                                                            │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+❯ pdb-md select --help
+                                                                                                                                                                               
+ Usage: pdb-md select [OPTIONS]                                                                                                                                                
+                                                                                                                                                                               
+ Select segments from a PDB or MMCIF structure file.                                                                                                                           
+                                                                                                                                                                               
+╭─ Options ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ *  --input        -I      <path>  Input PDB or MMCIF file [required]                                                                                                        │
+│    --output       -O      <path>  Output PDB file, defaults to <input stem>_selected.pdb in the current working directory                                                   │
+│ *  --segment      -S      <str>   Segments to select, either 'chain' (whole chain, e.g. A) or 'chain:start-end' (e.g. A:1-10). Repeatable. The start-end range filters      │
+│                                   polymer residues only; HETATM residues on the same chain are gated solely by --keep-hetero.                                               │
+│                                   [required]                                                                                                                                │
+│    --keep-hetero  -H      <str>   Keep HETATM residues. Repeatable. Each entry is 'spec' where spec is 'none','all', or a comma-separated list of residue names (e.g. 'ZN'  │
+│                                   or 'ZN,HOH'). An entry without a colon/chain is the global default for every chain; an entry with a chain (e.g. 'A:all') overrides the    │
+│                                   global set for that chain. Entries in the same scope are combined by union (-H ZN -H HOH == -H ZN,HOH); a chain entry replaces, not       │
+│                                   merges with, the global set. A chain must also appear in --segment, otherwise it is dropped before -H is consulted.                       │
+│    --help                         Show this message and exit.                                                                                                               │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 example:
