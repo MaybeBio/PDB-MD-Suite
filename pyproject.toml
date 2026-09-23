@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pdb-md"
-version = "0.1.1"
+version = "0.1.2"
 authors = [
   {name = "Joe Hoye Dow", email = "luxunisgod123@gmail.com"}
   ]
