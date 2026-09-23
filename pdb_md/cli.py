@@ -30,13 +30,13 @@ def select_cmd(
         ...,
         "--segment",
         "-S",
-        help="Segments to select, either 'chain' (whole chain, e.g. A) or 'chain:start-end' (e.g. A:1-10). Repeatable.",
+        help="Segments to select, either 'chain' (whole chain, e.g. A) or 'chain:start-end' (e.g. A:1-10). Repeatable. The start-end range filters polymer residues only; HETATM residues on the same chain are gated solely by --keep-hetero.",
     ),
     keep_hetero: str = typer.Option(
         "",
         "--keep-hetero",
         "-H",
-        help="Keep HETATM residues. '' (default) drops all; 'all' keeps every HETATM; otherwise a comma-separated list of residue names, e.g. 'ZN'.",
+        help="Keep HETATM residues. '' (default) drops all; 'all' keeps every HETATM; otherwise a comma-separated list of residue names, e.g. 'ZN'. HETATM/heterogen residues are selected at the CHAIN level only — the 'chain:start-end' range applies to polymer residues and is ignored for HETATM.",
     )
 ):
     """Select segments from a PDB or MMCIF structure file."""

@@ -33,9 +33,11 @@ pdb-md --help
 ## 1️⃣ select
 
 > [!WARNING] 
-> Sequence index matching to Uniprot only be tested in AlphaFold PDB files. 
+> The `segment` range parameter we using is filtered based on `resseq of (hetflag, resseq, icode) tuple output by residue.get_id() in Bio.PDB module of biopython`.
 > 
-> Check for SIFTS 
+> Resseq from few structures match UniProt. We only perform this test on AlphaFold output files.
+> 
+> So, we strongly recommend you to check th `SIFTS` mapping file for the structure you are going to use, and make sure the `segment` parameter is correct in Uniprot sequence-level meaning (most case).
 
 `Select segments from a PDB or MMCIF structure file`
 
@@ -65,6 +67,20 @@ change from
 ![](./figs/image.png)
 
 ---
+
+### Selecting HETATM / heterogen residues 
+
+> In short: polymer residue is governed by `range` + `chain` double filter, while HETATM is governed by `chain` only. The `--keep-hetero` option is the only way to keep HETATM residues.
+
+HETATM residues (ions, ligands, waters, sugars) are selected at the **chain** level, not by residue range. The `chain:start-end` syntax filters polymer residues only.
+
+Consequences:
+
+- A chain made entirely of HETATM (e.g. a single Zn ion, a glycan chain) is governed by the chain whitelist alone — `-S B` keeps the whole Zn.
+- On a **mixed** chain, `chain:start-end` does NOT narrow which HETATM are kept: `-S A:1-3 --keep-hetero UNX` still keeps `UNX` at resid 109, because the HETATM branch ignores `regions`.
+- `--keep-hetero ''` (default) drops every HETATM; `all` keeps them all; a comma list (e.g. `ZN, HOH`) is an exact resname whitelist (case-insensitive).
+
+To pick specific HETATM on a mixed chain, split the chain in preprocessing (e.g. give the heterogen its own chain id) — the current CLI has no per-HETATM range selector.
 
 ## 2️⃣ preprocessing for MD simulation
 
