@@ -64,7 +64,7 @@ pdb-md select -I znf263_all_hs7_30_0.54_0.37_model_0.cif -O znf263_all_hs7_30_0.
 
 change from 
 ![](./figs/image1.png) to
-![](./figs/image.png)
+![](./figs/image2.png)
 
 ---
 
