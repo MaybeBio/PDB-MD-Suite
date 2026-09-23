@@ -29,9 +29,15 @@ def select_cmd(
     segments: list[str] = typer.Option(
         ...,
         "--segment",
-        "-s",
+        "-S",
         help="Segments to select, either 'chain' (whole chain, e.g. A) or 'chain:start-end' (e.g. A:1-10). Repeatable.",
     ),
+    keep_hetero: str = typer.Option(
+        "",
+        "--keep-hetero",
+        "-H",
+        help="Keep HETATM residues. '' (default) drops all; 'all' keeps every HETATM; otherwise a comma-separated list of residue names, e.g. 'ZN'.",
+    )
 ):
     """Select segments from a PDB or MMCIF structure file."""
     if not input_file.exists():
@@ -49,6 +55,18 @@ def select_cmd(
     # Parse the structure
     structure = parser.get_structure("structure", input_file)
 
+    # Process the keep_hetero option
+    # resolve the heterogen whitelist once:
+    # "" -> drop all HETATM, "all" -> keep all HETATM, otherwise a comma-separated list of residue names
+    if keep_hetero.strip().lower() in ("", "none"):
+        keep_names = frozenset()
+    elif keep_hetero.strip().lower() == "all":
+        keep_names = frozenset({"all"})
+    else:
+        keep_names = frozenset( 
+            name.strip().upper() for name in keep_hetero.split(",") if name.strip()
+            )
+
     # Create SingleChainSelector objects; a segment without a colon selects a whole chain
     selectors = []
     for seg in segments:
@@ -58,14 +76,14 @@ def select_cmd(
                 raise ValueError(
                     f"Invalid segment: {seg!r}. Expected 'chain' or 'chain:start-end'."
                 )
-            selectors.append(SingleChainSelector(chain_id, None))
+            selectors.append(SingleChainSelector(chain_id, None, keep_hetero=keep_names))
             continue
         chain_id, range_str = seg.split(":", 1)
         match = re.fullmatch(r"(\d+)-(\d+)", range_str)
         if not match:
             raise ValueError(f"Invalid range format: {range_str}. Expected format is start-end.")
         start, end = map(int, match.groups())
-        selectors.append(SingleChainSelector(chain_id, [(start, end)]))
+        selectors.append(SingleChainSelector(chain_id, [(start, end)], keep_hetero=keep_names))
 
     # Warn about chain ids that are absent from the model that gets written (model 0),
     # so a typo does not silently produce an empty output file

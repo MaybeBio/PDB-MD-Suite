@@ -28,7 +28,11 @@ _hydrogen = re.compile("[123 ]*H.*")
 class SingleChainSelector:
     """Only accepts residues with right chainid, between start and end.
 
-    Remove hydrogens, waters and ligands. Only use model 0 by default.
+    Remove hydrogens, waters. Only use model 0 by default.
+
+    HETATM residues(ions, ligands, waters) are dropped by default; 
+
+    pass keep_hetero (a set of residue names, or {"all"} to keep all) to keep them.
 
     Modified to support multiple regions selected.
 
@@ -40,16 +44,25 @@ class SingleChainSelector:
         chain_id,
         regions: list[tuple[int, int]] | None = None,
         model_id=0,
+        keep_hetero: frozenset[str] = frozenset()
     ):
         """Initialize the class.
 
-        A regions of None means "whole chain" and an empty list means "keep
-        nothing"; the two stay distinguishable because consolidate_ranges would
-        collapse both to an empty list otherwise.
+        Args
+        ----
+        regions : list[tuple[int, int]] | None
+            A regions of None means "whole chain" and an empty list means "keep
+            nothing"; the two stay distinguishable because consolidate_ranges would
+            collapse both to an empty list otherwise.
+
+        keep_hetero : frozenset[str]
+            residue names of HETATM residues to keep (case-insensitive), or {"all"} to keep all HETATM residues.
+            Empty (the default) drops all HETATM.
         """
         self.chain_id = chain_id
         self.regions = None if regions is None else consolidate_ranges(regions)
         self.model_id = model_id
+        self.keep_hetero = keep_hetero
 
     def accept_model(self, model):
         """Verify if model match the model identifier."""
@@ -68,13 +81,22 @@ class SingleChainSelector:
         """Verify if a residue sequence is between the start and end sequence."""
         # residue - between start and end
         hetatm_flag, resseq, icode = residue.get_id()
+        # if it is a HETATM, check if we want to keep it
         if hetatm_flag != " ":
-            # skip HETATMS
-            return 0
+            # HETATM: keep if in keep_hetero, else skip, empty keep_hetero drops all
+            if not self.keep_hetero:
+                return 0
+            # else there are some HETATM residues to keep but not the current one 
+            resname = residue.get_resname().strip().upper()
+            if "all" not in self.keep_hetero and resname not in self.keep_hetero:
+                return 0
+            # otherwise we keep the HETATM residue
+            return 1
         if icode != " ":
             warnings.warn(
                 f"WARNING: Icode {icode} at position {resseq}", BiopythonWarning
             )
+        # a chain full of HETATM residues will enter the following loop
         # whole chain: every standard residue is accepted
         if self.regions is None:
             return 1
