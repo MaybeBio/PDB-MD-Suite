@@ -82,9 +82,33 @@ Consequences:
 
 To pick specific HETATM on a mixed chain, split the chain in preprocessing (e.g. give the heterogen its own chain id) — the current CLI has no per-HETATM range selector.
 
+#### `--keep-hetero` syntax 
+
+`-H` is repeatable. Each entry is `[chain:]spec`:  
+
+| entry | meaning |
+|---|---|
+| `-H ZN` | global: every chain keeps HETATM named `ZN` | 
+| `-H ZN,HOH` | global: every chain keeps `ZN` and `HOH` |  
+| `-H all` | global: every chain keeps all HETATM |
+| `-H none` / `-H ''` | global: every chain drops all HETATM (default) | 
+| `-H A:all` | chain A keeps all of its HETATM | 
+| `-H A:none` | chain A drops all of its HETATM |
+| `-H E:ZN,HOH` | chain E keeps only `ZN` and `HOH` |
+
+Two rules govern how entries combine:  
+1. **Union within the same scope.** Several entries for the same scope add up:
+`-H ZN -H HOH` ≡ `-H ZN,HOH`, and `-H E:ZN -H E:HOH` ≡ `-H E:ZN,HOH`.
+Adding an entry never removes something already whitelisted.
+2. **A chain entry overrides the global entry.** A chain that has its own
+`[chain:]` entry uses *only* that set and ignores the global one. This is what
+makes per-chain removal expressible: `-H ZN -H J:none` keeps `ZN` everywhere except chain J.
+
+A `-H` chain id must also appear in `--segment`; otherwise the chain is dropped before `-H` is ever consulted, and a warning is printed.
+
 ## 2️⃣ preprocessing for MD simulation
 
-Here we summarize several important easy to use application for fixing problems in Protein Data Bank files in preparation for simulating them.
+Here we summariz e several important easy to use application for fixing problems in Protein Data Bank files in preparation for simulating them.
 
 |Tool name|Description|Url| Note |
 |--|--|--| --- |
