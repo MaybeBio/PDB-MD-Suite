@@ -56,9 +56,9 @@ def load_pdb(input_pdb:Path):
 
     # check the file extension to determine the parser
     suffix = input_pdb.suffix.lower()
-    if suffix == "pdb":
+    if suffix == ".pdb":
         parser = PDBParser(QUIET=True)
-    elif suffix == "cif":
+    elif suffix == ".cif":
         parser = MMCIFParser(QUIET=True)
     else:
         raise ValueError("Unsupported file format. Please provide a .pdb or .cif file.")
