@@ -156,10 +156,28 @@ def termini_rm5p_cmd(
     Remove terminal phosphate groups from nucleic acids, e.g. 5' phosphate group from DNA/RNA.
     """
 
-    # parse  the structure
+    # parse the structure
     structure = load_pdb(input_file)
-    structure_rm5p = strip_5_phosphate(structure, chains)
-    save_pdb(structure_rm5p, output_file or Path(input_file.stem + "_rm5p.pdb"))
+
+    # warn about requested chains that are absent, so a typo does not pass silently
+    for chain_id in chains or []:
+        if chain_id not in structure[0]:
+            typer.echo(f"WARNING: chain {chain_id} not found in {input_file}", err=True)
+
+    # strip the 5'-terminal phosphates, collecting what was removed per chain
+    removed = strip_5_phosphate(structure, chains)
+
+    if not output_file:
+        output_file = Path(input_file.stem + "_rm5p.pdb")
+    save_pdb(structure, output_file)
+
+    # report which file was written and what changed
+    typer.echo(f"Wrote {output_file}")
+    if removed:
+        for chain_id, atom_names in removed.items():
+            typer.echo(f"  chain {chain_id}: removed {', '.join(atom_names)}")
+    else:
+        typer.echo("  no 5'-terminal phosphate found; structure left unchanged")
 
 
 

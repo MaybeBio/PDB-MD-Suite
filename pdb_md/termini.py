@@ -55,8 +55,10 @@ def strip_5_phosphate(structure, chains):
     
     Returns
     -------
-    structure: Bio.PDB.Structure.Structure
-        The modified structure with terminal phosphate groups removed.
+    dict[str, list[str]]
+        {chain_id: [atom names removed]} for each chain that was modified.
+        An empty dict means no chain carried a 5'-terminal phosphate.
+        `structure` itself is modified in place.
     """
 
     # determine the model id 
@@ -71,6 +73,9 @@ def strip_5_phosphate(structure, chains):
         # note we need to change the `chain` from str to the actual chain object in the model
         chains_to_process = [model[chain] for chain in chains if chain in model]
 
+    # collect what was removed per chain, so the caller can report it
+    removed: dict[str, list[str]] = {}
+
     # iterate over the chains and remove terminal phosphate groups
     for chain in chains_to_process:
         # find the terminal phosphate groups in the chain
@@ -82,7 +87,8 @@ def strip_5_phosphate(structure, chains):
         # remove them
         for atom_name in remove_atoms:
             residue.detach_child(atom_name)
+        # find_terminal_phosphate_residue only returns a residue that has "P",
+        # and "P" is in PHOSPHATE_ATOM_NAMES, so remove_atoms is never empty here
+        removed[chain.get_id()] = remove_atoms
 
-    # return the modified structure
-    return structure
-    
+    return removed
