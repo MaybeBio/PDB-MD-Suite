@@ -5,6 +5,16 @@
 
 > Pre- and post-processing toolkit for PDB/MMCIF structure files in molecular dynamics workflows.  
 
+# Prerequisites
+
+> Always check for the forums of the MD simulation software you are using.
+
+|Tool| Description | Url |
+|--|--|--|
+|Amber| Amber Mailing List Archive |http://archive.ambermd.org/ <br><br> https://cse.google.com/cse?cx=partner-pub-9700140137778662:8927431201&ie=UTF-8&sa=Search&ref=lists.ambermd.org/ |
+|Gromacs|GROMACS community forums | https://gromacs.bioexcel.eu/ |
+|| 计算化学公社- 高水平计算化学、理论化学交流论坛[`CHINESE`]  | http://bbs.keinsci.com/forum.php |
+
 # Installation
 
 ```bash
