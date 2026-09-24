@@ -187,9 +187,27 @@ In detail, we just need to remove the **`[O1P/OP1, O2P/OP2, O3P/OP3 if exists, P
 You can use the `termini-rm5p` command to remove the 5' terminal phosphate group from nucleic acids as talked above.
 
 ```bash
-
+❯ pdb-md termini-rm5p --help
+                                                                                                                                                                                                          
+ Usage: pdb-md termini-rm5p [OPTIONS]                                                                                                                                                                     
+                                                                                                                                                                                                          
+ Remove terminal phosphate groups from nucleic acids, e.g. 5' phosphate group from DNA/RNA.                                                                                                               
+                                                                                                                                                                                                          
+╭─ Options ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ *  --input   -I      <path>  Input PDB or MMCIF file [required]                                                                                                                                        │
+│    --output  -O      <path>  Output PDB file, defaults to <input stem>_rm5p.pdb in the current working directory                                                                                       │
+│    --chain   -C      <str>   Chains to process. Repeatable. If not provided, all chains will be processed.                                                                                             │
+│    --help                    Show this message and exit.                                                                                                                                               │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
+```bash
+❯ pdb-md termini-rm5p -I znf263_all_hs7_30_0.54_0.37_model_0_selected.pdb -C K -C L
+
+Wrote znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p.pdb
+  chain K: removed OP3, P, OP1, OP2
+  chain L: removed P, OP1, OP2
+```
 
 
 ### `protonation(add hydrogens)`
