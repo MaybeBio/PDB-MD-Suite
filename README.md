@@ -169,6 +169,16 @@ Add Water
 Add Membrane
 ```
 
+### Removal of terminal phosphate group for Nucleic Acid
+
+> It is usually suggested that while preparing a nucleic acid system for simulation, 5' terminal phosphate group must be removed; or any terminal charged phosphate group should be removed...
+>
+> Nucleic acids typically do not have 5’-phosphate groups. Force fields are parametrized to the most common use cases and do not necessarily cover all possible chemical space. Delete the phosphate atoms from the 5’-nucleotide and you can generate the topology such that it has a free 5’-hydroxyl group.
+
+> In most cases, e.g. for DNA simulations, 5’-phosphate groups are less cared about, so you can just delete them
+
+Remove any phosphate group from terminal residues; these are often present synthetically but are not how force fields are typically parametrized (5’-OH terminus is typical).
+
 
 ### `protonation(add hydrogens)`
 
