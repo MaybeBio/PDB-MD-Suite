@@ -1,5 +1,8 @@
 # some utility functions defined
 
+from Bio.PDB import PDBIO, PDBParser, MMCIFParser
+from pathlib import Path
+
 def consolidate_ranges(ranges: list[tuple[int, int]]) -> list[tuple[int, int]]:
     """
     Description
@@ -32,3 +35,49 @@ def consolidate_ranges(ranges: list[tuple[int, int]]) -> list[tuple[int, int]]:
     return consolidated
 
     
+def load_pdb(input_pdb:Path):
+    """
+    Load a PDB or MMCIF file and return the structure object.
+
+    Parameters
+    ----------
+    input_pdb : Path
+        Path to the input PDB or MMCIF file.
+
+    Returns
+    -------
+    structure : Bio.PDB.Structure.Structure
+        The loaded structure object.
+    """
+
+    # check if the input file exists
+    if not input_pdb.exists():
+        raise ValueError(f"Input file {input_pdb} does not exist.")
+
+    # check the file extension to determine the parser
+    suffix = input_pdb.suffix.lower()
+    if suffix == "pdb":
+        parser = PDBParser(QUIET=True)
+    elif suffix == "cif":
+        parser = MMCIFParser(QUIET=True)
+    else:
+        raise ValueError("Unsupported file format. Please provide a .pdb or .cif file.")
+
+    # parse the structure
+    return parser.get_structure("x", input_pdb)
+
+def save_pdb(structure, output_pdb:Path):
+    """
+    Save a structure object to a PDB file.
+
+    Parameters
+    ----------
+    structure : Bio.PDB.Structure.Structure
+        The structure object to save.
+    output_pdb : Path
+        Path to the output PDB file.
+    """
+
+    io = PDBIO()
+    io.set_structure(structure)
+    io.save(str(output_pdb))

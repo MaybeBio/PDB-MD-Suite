@@ -1,21 +1,16 @@
 import re
+import typer
 from pathlib import Path
 from typing import Optional
 
-import typer
 from Bio.PDB import MMCIFParser, PDBIO, PDBParser
 
+from .utils import load_pdb, save_pdb
 from .MultiChainSelector import MultiChainSelector
 from .SingleChainSelector import SingleChainSelector
+from .termini import strip_5_phosphate
 
 app = typer.Typer(help="Pre- and post-processing toolkit for PDB/MMCIF structure files in molecular dynamics workflows.", no_args_is_help=True)
-
-# Rules for typer: When the app registers only one command and has no callback, this command will be directly promoted to the root command (single-command collapse), and the subcommand layer will no longer exist.
-# Adding @app.callback() explicitly declares "this is a command group"
-@app.callback()
-def main():
-    """Segment selector for PDB/MMCIF structure files."""
-
 
 @app.command("select", no_args_is_help=True)
 def select_cmd(
@@ -45,20 +40,9 @@ def select_cmd(
     )
 ):
     """Select segments from a PDB or MMCIF structure file."""
-    if not input_file.exists():
-        raise ValueError(f"Input file {input_file} does not exist.")
-
-    # Determine the parser based on file extension
-    suffix = input_file.suffix.lower()
-    if suffix == ".pdb":
-        parser = PDBParser()
-    elif suffix == ".cif":
-        parser = MMCIFParser()
-    else:
-        raise ValueError("Unsupported file format. Please provide a .pdb or .cif file.")
 
     # Parse the structure
-    structure = parser.get_structure("structure", input_file)
+    structure = load_pdb(input_file)
 
     # Process the keep_hetero option.
     # Each entry is '[chain:]spec' where spec is 'none'(drop all HETATM), 'all'(keep every HETATM), or a comma-separated list of residue names.
@@ -150,6 +134,33 @@ def select_cmd(
     # PDBIO.save only accepts a filename string or an open filehandle, not a Path
     io.save(str(output_file), multi_selector)
     typer.echo(f"Wrote {output_file}")
+
+
+@app.command("termini-rm5p", no_args_is_help=True)
+def termini_rm5p_cmd(
+    input_file: Path = typer.Option(..., "--input", "-I", help="Input PDB or MMCIF file"),
+    output_file: Optional[Path] = typer.Option(
+        None,
+        "--output",
+        "-O",
+        help="Output PDB file, defaults to <input stem>_rm5p.pdb in the current working directory",
+    ),
+    chains: Optional[list[str]] = typer.Option(
+        None,
+        "--chain",
+        "-C",
+        help="Chains to process. Repeatable. If not provided, all chains will be processed.",
+    ),
+):
+    """
+    Remove terminal phosphate groups from nucleic acids, e.g. 5' phosphate group from DNA/RNA.
+    """
+
+    # parse  the structure
+    structure = load_pdb(input_file)
+    structure_rm5p = strip_5_phosphate(structure, chains)
+    save_pdb(structure_rm5p, output_file or Path(input_file.stem + "_rm5p.pdb"))
+
 
 
 if __name__ == "__main__":
