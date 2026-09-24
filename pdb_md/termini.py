@@ -64,6 +64,7 @@ def strip_5_phosphate(structure, chains):
 
     # iterate over the specified chains or all chains if none are specified
     if chains is None:
+        # process all chains in the model if no specific chains are provided
         chains_to_process = model.get_chains()
     else:
         # filter the chains to only those that exist in the model

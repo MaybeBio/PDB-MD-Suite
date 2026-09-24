@@ -24,20 +24,22 @@ pip install pdb-md
 # Usage
 
 ```bash
-pdb-md --help
-                                                                        
- Usage: pdb-md [OPTIONS] COMMAND [ARGS]...                                                                                                                                          
-                                                                                                                                                                                        
- Segment selector for PDB/MMCIF Structure file                                                                                                                                          
-                                                                                                                                                                                        
-╭─ Options ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ --install-completion          Install completion for the current shell.                                                                                                              │
-│ --show-completion             Show completion for the current shell, to copy it or customize the installation.                                                                       │
-│ --help                        Show this message and exit.                                                                                                                            │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Commands ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ select  Select segments from a PDB or MMCIF structure file.                                                                                                                          │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯                                                                        
+❯ pdb-md  --help
+                                                                                                                                                                                                                       
+ Usage: pdb-md [OPTIONS] COMMAND [ARGS]...                                                                                                                                                                             
+                                                                                                                                                                                                                       
+ Pre- and post-processing toolkit for PDB/MMCIF structure files in molecular dynamics workflows.                                                                                                                       
+                                                                                                                                                                                                                       
+╭─ Options ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --install-completion          Install completion for the current shell.                                                                                                                                             │
+│ --show-completion             Show completion for the current shell, to copy it or customize the installation.                                                                                                      │
+│ --help                        Show this message and exit.                                                                                                                                                           │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ select        Select segments from a PDB or MMCIF structure file.                                                                                                                                                   │
+│ termini-rm5p  Remove terminal phosphate groups from nucleic acids, e.g. 5' phosphate group from DNA/RNA.                                                                                                            │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+                                                               
 ```
 
 ## 1️⃣ select
@@ -179,6 +181,15 @@ Add Membrane
 > In most cases, e.g. for DNA simulations, 5’-phosphate groups are less cared about, so you can just delete them
 
 Remove any phosphate group from terminal residues; these are often present synthetically but are not how force fields are typically parametrized (5’-OH terminus is typical).
+
+In detail, we just need to remove the **`[O1P/OP1, O2P/OP2, O3P/OP3 if exists, P, Hydrogens attached to them]`** atoms from the 5' terminal residue of a nucleic acid chain.
+
+You can use the `termini-rm5p` command to remove the 5' terminal phosphate group from nucleic acids as talked above.
+
+```bash
+
+```
+
 
 
 ### `protonation(add hydrogens)`
