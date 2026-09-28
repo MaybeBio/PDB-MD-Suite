@@ -126,7 +126,7 @@ A `-H` chain id must also appear in `--segment`; otherwise the chain is dropped 
 
 ## 2️⃣ preprocessing for MD simulation
 
-Here we summariz e several important easy to use application for fixing problems in Protein Data Bank files in preparation for simulating them.
+Here we summarize several important easy to use application for fixing problems in Protein Data Bank files in preparation for simulating them.
 
 |Tool name|Description|Url| Note |
 |--|--|--| --- |
@@ -242,6 +242,36 @@ Here we summarize several tools for predicting or assigning the protonation stat
 
 > For residue renaming, most scripts are based on raw text processing given that the PDB file is an 80-column, fixed-width text file. However, this approach is not robust and can easily introduce errors **just as manual editing does**. Therefore, we recommend using the 'biopython' library to read the PDB file, modify the residue names, and then write it back to a new PDB file. This method is more robust and less error-prone.
 
+You can use the `res-rename` command to rename residues by chain and residue number. This applies a renaming you have already decided on; the protonation-state *decision* itself is made beforehand (by the tools above, or by hand).
+
+```bash
+❯ pdb-md res-rename --help
+                                                                                                                                                                                                          
+ Usage: pdb-md res-rename [OPTIONS]                                                                                                                                                                     
+                                                                                                                                                                                                          
+ Rename residues of specified chains and residue numbers, e.g. to the residue names a force field expects for a given protonation state (HIS -> HIE/HID/HIP, CYS -> CYM).                               
+                                                                                                                                                                                                          
+╭─ Options ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ *  --input   -I      <path>  Input PDB or MMCIF file [required]                                                                                                                                      │
+│    --output  -O      <path>  Output PDB file, defaults to <input stem>_renamed.pdb in the current working directory                                                                                  │
+│ *  --rename  -R      <str>   Residue to rename as 'chain:resnum:newresname' (e.g. A:20:HIE). Repeatable. The new name may be at most 4 characters. [required]                                        │
+│    --help                    Show this message and exit.                                                                                                                                             │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+```
+
+Each `-R/--rename` entry is `chain:resnum:newresname` and is repeatable, so a whole zinc site can be renamed in one call. The command reports every rename it applied, so the change is visible without diffing the input and output:
+
+```bash
+❯ pdb-md res-rename -I znf263_demo.pdb -R A:1:CYM -R A:2:HIE
+
+Wrote znf263_demo_renamed.pdb
+  chain A: 1 CYS -> CYM
+  chain A: 2 HIS -> HIE
+```
+
+A chain or residue that does not exist is reported as a warning rather than failing the run, so a typo cannot pass silently.
+
+> **A note on 4-character residue names.** A PDB residue name occupies columns 18-20, but some force fields use 4-character names (GROMOS `HISA`/`HISB`, CHARMM `CYSH`) that borrow the blank column 21 between the name and the chain id. Biopython's `PDBIO` formats the residue name with a *minimum* width of 3, which does not truncate: a 4-character name pushes every following column one to the right and emits an 81-column record with the chain id and residue number out of place -- a record fixed-column parsers read wrong. `res-rename` renders the file in memory and repairs those records before saving, so both 3- and 4-character names come out as well-formed 80-column lines. Names longer than 4 characters are rejected outright, since they have nowhere in the format to go.
 
 
 
@@ -251,4 +281,4 @@ Here we summarize several tools for predicting or assigning the protonation stat
 
 ### A typical workflow for preparing a PDB file for MD simulation
 
-pdbfixer(fix missing atoms, remove heterogens and hydrogens) -> pdb-md select (select chains and residues) -> pdb-md termini-rm5p (remove 5' terminal phosphate group for nucleic acids) -> pdb4amber renum -> protonation (add hydrogens) -> pdb2gmx/pdb4amber (generate topology and coordinates for MD simulation)
+pdbfixer(fix missing atoms, remove heterogens and hydrogens) -> pdb-md select (select chains and residues) -> pdb-md termini-rm5p (remove 5' terminal phosphate group for nucleic acids) -> pdb4amber renum -> protonation (add hydrogens) -> pdb-md res-rename (rename residues to the force field's protonation-state names) -> pdb2gmx/pdb4amber (generate topology and coordinates for MD simulation)

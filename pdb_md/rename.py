@@ -112,6 +112,10 @@ def save_pdb_keeping_columns(structure, output_pdb):
             # in normal-case(3-character), column 21(1-index, 20(0-index)) is a blank space, but in 4-character names it is the 4th character of the name
             # so line[:21] is end of the 4-character name,, line[21:22] is the blank space right-moved move now, line[22:] is the rest of the record starting with the chain id
             # and we combine 4-character name with chain id to make it 80 columns
+            # or we can enhance it by adding:
+            # resname = line[17:20].strip()
+            # resseq = int(line[22:26].split()[0])（PDBParser.py:187）
+            # if this line (resname, resseq) is in the applied dict
             line = line[:21] + line[22:]
         lines.append(line)
 
