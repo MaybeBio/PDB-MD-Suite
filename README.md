@@ -249,24 +249,125 @@ You can use the `res-rename` command to rename residues by chain and residue num
 
 ```bash
 ❯ pdb-md res-rename --help
-                                                                                                                                                                                                          
- Usage: pdb-md res-rename [OPTIONS]                                                                                                                                                                     
-                                                                                                                                                                                                          
- Rename residues of specified chains and residue numbers, e.g. to the residue names a force field expects for a given protonation state (HIS -> HIE/HID/HIP, CYS -> CYM).                               
-                                                                                                                                                                                                          
-╭─ Options ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ *  --input   -I      <path>  Input PDB or MMCIF file [required]                                                                                                                                      │
-│    --output  -O      <path>  Output PDB file, defaults to <input stem>_renamed.pdb in the current working directory                                                                                  │
-│ *  --rename  -R      <str>   Residue to rename as 'chain:resnum:newresname' (e.g. A:20:HIE). Repeatable. The new name may be at most 4 characters. [required]                                        │
-│    --help                    Show this message and exit.                                                                                                                                             │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+                                                                                                                                                                                          
+ Usage: pdb-md res-rename [OPTIONS]                                                                                                                                                       
+                                                                                                                                                                                          
+ Rename residues of specified chains and residue numbers, e.g. to the residue names a force field expects for a given protonation state (HIS -> HIE/HID/HIP, CYS -> CYM).                 
+                                                                                                                                                                                          
+╭─ Options ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ *  --input   -I      <path>  Input PDB or MMCIF file [required]                                                                                                                        │
+│    --output  -O      <path>  Output PDB file, defaults to <input stem>_renamed.pdb in the current working directory                                                                    │
+│ *  --rename  -R      <str>   Residue to rename as 'chain:resnum:newresname' (e.g. A:20:HIE). Repeatable. resnum is the residue number carried by that chain's own records (columns     │
+│                              23-26); it is not the atom serial, and it does not necessarily restart at 1 per chain. The new name may be at most 4 characters.                          │
+│                              [required]                                                                                                                                                │
+│    --help                    Show this message and exit.                                                                                                                               │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 example:
 
 ```bash
-pdb-md res-rename -I znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p_renum.pdb -R 
+pdb-md res-rename \
+-I znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p_renum.pdb \
+-R A:12:CY4 \
+-R A:15:CY4 \
+-R A:68:CY4 \
+-R A:71:CY4 \
+-R A:96:CY4 \
+-R A:99:CY4 \
+-R A:124:CY4 \
+-R A:127:CY4 \
+-R A:152:CY4 \
+-R A:155:CY4 \
+-R A:209:CY4 \
+-R A:212:CY4 \
+-R A:237:CY4 \
+-R A:240:CY4 \
+-R A:265:CY4 \
+-R A:268:CY4 \
+-R A:293:CY4 \
+-R A:296:CY4 \
+-R A:28:HD2 \
+-R A:32:HD2 \
+-R A:84:HD2 \
+-R A:88:HD2 \
+-R A:112:HD2 \
+-R A:116:HD2 \
+-R A:140:HD2 \
+-R A:144:HD2 \
+-R A:168:HD2 \
+-R A:172:HD2 \
+-R A:225:HD2 \
+-R A:229:HD2 \
+-R A:253:HD2 \
+-R A:257:HD2 \
+-R A:281:HD2 \
+-R A:285:HD2 \
+-R A:309:HD2 \
+-R A:313:HD2 \
+-R B:316:ZN4 \
+-R C:317:ZN4 \
+-R D:318:ZN4 \
+-R E:319:ZN4 \
+-R F:320:ZN4 \
+-R G:321:ZN4 \
+-R H:322:ZN4 \
+-R I:323:ZN4 \
+-R J:324:ZN4
+
 ```
+
+the log shows:
+
+```bash
+Wrote znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p_renum_renamed.pdb
+  chain A: 12 CYS -> CY4
+  chain A: 15 CYS -> CY4
+  chain A: 68 CYS -> CY4
+  chain A: 71 CYS -> CY4
+  chain A: 96 CYS -> CY4
+  chain A: 99 CYS -> CY4
+  chain A: 124 CYS -> CY4
+  chain A: 127 CYS -> CY4
+  chain A: 152 CYS -> CY4
+  chain A: 155 CYS -> CY4
+  chain A: 209 CYS -> CY4
+  chain A: 212 CYS -> CY4
+  chain A: 237 CYS -> CY4
+  chain A: 240 CYS -> CY4
+  chain A: 265 CYS -> CY4
+  chain A: 268 CYS -> CY4
+  chain A: 293 CYS -> CY4
+  chain A: 296 CYS -> CY4
+  chain A: 28 HIS -> HD2
+  chain A: 32 HIS -> HD2
+  chain A: 84 HIS -> HD2
+  chain A: 88 HIS -> HD2
+  chain A: 112 HIS -> HD2
+  chain A: 116 HIS -> HD2
+  chain A: 140 HIS -> HD2
+  chain A: 144 HIS -> HD2
+  chain A: 168 HIS -> HD2
+  chain A: 172 HIS -> HD2
+  chain A: 225 HIS -> HD2
+  chain A: 229 HIS -> HD2
+  chain A: 253 HIS -> HD2
+  chain A: 257 HIS -> HD2
+  chain A: 281 HIS -> HD2
+  chain A: 285 HIS -> HD2
+  chain A: 309 HIS -> HD2
+  chain A: 313 HIS -> HD2
+  chain B: 316 ZN -> ZN4
+  chain C: 317 ZN -> ZN4
+  chain D: 318 ZN -> ZN4
+  chain E: 319 ZN -> ZN4
+  chain F: 320 ZN -> ZN4
+  chain G: 321 ZN -> ZN4
+  chain H: 322 ZN -> ZN4
+  chain I: 323 ZN -> ZN4
+  chain J: 324 ZN -> ZN4
+```
+
 
 > **A note on 4-character residue names.** A PDB residue name occupies columns 18-20, but some force fields use 4-character names (GROMOS `HISA`/`HISB`, CHARMM `CYSH`) that borrow the blank column 21 between the name and the chain id. Biopython's `PDBIO` formats the residue name with a *minimum* width of 3, which does not truncate: a 4-character name pushes every following column one to the right and emits an 81-column record with the chain id and residue number out of place -- a record fixed-column parsers read wrong. `res-rename` renders the file in memory and repairs those records before saving, so both 3- and 4-character names come out as well-formed 80-column lines. Names longer than 4 characters are rejected outright, since they have nowhere in the format to go. 
 > 
@@ -280,4 +381,4 @@ pdb-md res-rename -I znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p_renum.pdb
 
 ### A typical workflow for preparing a PDB file for MD simulation
 
-pdbfixer(fix missing atoms, remove heterogens and hydrogens) -> pdb-md select (select chains and residues) -> pdb-md termini-rm5p (remove 5' terminal phosphate group for nucleic acids) -> pdb4amber renum -> protonation (add hydrogens) -> pdb-md res-rename (rename residues to the force field's protonation-state names) -> pdb2gmx/pdb4amber (generate topology and coordinates for MD simulation)
+pdbfixer(fix missing atoms, remove heterogens and hydrogens) -> pdb-md select (select chains and residues) -> pdb-md termini-rm5p (remove 5' terminal phosphate group for nucleic acids) -> pdb4amber renum(`optional`, but recommended) -> protonation (add hydrogens) status determined, followed by pdb-md res-rename (rename residues to the force field's protonation-state names) -> pdb4amber renum(`optional`, only if needed)  -> pdb2gmx/pdb4amber (generate topology and coordinates for MD simulation)
