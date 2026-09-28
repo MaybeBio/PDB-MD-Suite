@@ -24,21 +24,24 @@ pip install pdb-md
 # Usage
 
 ```bash
-❯ pdb-md  --help
-                                                                                                                                                                                                                       
- Usage: pdb-md [OPTIONS] COMMAND [ARGS]...                                                                                                                                                                             
-                                                                                                                                                                                                                       
- Pre- and post-processing toolkit for PDB/MMCIF structure files in molecular dynamics workflows.                                                                                                                       
-                                                                                                                                                                                                                       
-╭─ Options ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ --install-completion          Install completion for the current shell.                                                                                                                                             │
-│ --show-completion             Show completion for the current shell, to copy it or customize the installation.                                                                                                      │
-│ --help                        Show this message and exit.                                                                                                                                                           │
-╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Commands ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ select        Select segments from a PDB or MMCIF structure file.                                                                                                                                                   │
-│ termini-rm5p  Remove terminal phosphate groups from nucleic acids, e.g. 5' phosphate group from DNA/RNA.                                                                                                            │
-╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+❯ pdb-md --help
+                                                                                                                                                    
+ Usage: pdb-md [OPTIONS] COMMAND [ARGS]...                                                                                                          
+                                                                                                                                                    
+ Pre- and post-processing toolkit for PDB/MMCIF structure files in molecular dynamics workflows.                                                    
+                                                                                                                                                    
+╭─ Options ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --install-completion          Install completion for the current shell.                                                                          │
+│ --show-completion             Show completion for the current shell, to copy it or customize the installation.                                   │
+│ --help                        Show this message and exit.                                                                                        │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ select        Select segments from a PDB or MMCIF structure file.                                                                                │
+│ termini-rm5p  Remove terminal phosphate groups from nucleic acids, e.g. 5' phosphate group from DNA/RNA.                                         │
+│ res-rename    Rename residues of specified chains and residue numbers, e.g. to the residue names a                                               │
+│               force field expects for a given protonation state (HIS -> HIE/HID/HIP, CYS -> CYM).                                                │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
                                                                
 ```
 
@@ -259,19 +262,11 @@ You can use the `res-rename` command to rename residues by chain and residue num
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
-Each `-R/--rename` entry is `chain:resnum:newresname` and is repeatable, so a whole zinc site can be renamed in one call. The command reports every rename it applied, so the change is visible without diffing the input and output:
 
-```bash
-❯ pdb-md res-rename -I znf263_demo.pdb -R A:1:CYM -R A:2:HIE
 
-Wrote znf263_demo_renamed.pdb
-  chain A: 1 CYS -> CYM
-  chain A: 2 HIS -> HIE
-```
-
-A chain or residue that does not exist is reported as a warning rather than failing the run, so a typo cannot pass silently.
-
-> **A note on 4-character residue names.** A PDB residue name occupies columns 18-20, but some force fields use 4-character names (GROMOS `HISA`/`HISB`, CHARMM `CYSH`) that borrow the blank column 21 between the name and the chain id. Biopython's `PDBIO` formats the residue name with a *minimum* width of 3, which does not truncate: a 4-character name pushes every following column one to the right and emits an 81-column record with the chain id and residue number out of place -- a record fixed-column parsers read wrong. `res-rename` renders the file in memory and repairs those records before saving, so both 3- and 4-character names come out as well-formed 80-column lines. Names longer than 4 characters are rejected outright, since they have nowhere in the format to go.
+> **A note on 4-character residue names.** A PDB residue name occupies columns 18-20, but some force fields use 4-character names (GROMOS `HISA`/`HISB`, CHARMM `CYSH`) that borrow the blank column 21 between the name and the chain id. Biopython's `PDBIO` formats the residue name with a *minimum* width of 3, which does not truncate: a 4-character name pushes every following column one to the right and emits an 81-column record with the chain id and residue number out of place -- a record fixed-column parsers read wrong. `res-rename` renders the file in memory and repairs those records before saving, so both 3- and 4-character names come out as well-formed 80-column lines. Names longer than 4 characters are rejected outright, since they have nowhere in the format to go. 
+> 
+> This note covers writing only. Biopython's parser reads the residue name from three columns, so a 4-character name already in the input is silently truncated to three (no error) -- and that includes the file this command writes. Re-running any `pdb-md` command on `res-rename`'s output will lose the 4th character, so the truncation is reported as a warning.
 
 
 
