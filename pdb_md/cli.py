@@ -195,7 +195,7 @@ def res_rename_cmd(
         ...,
         "--rename",
         "-R",
-        help="Residue to rename as 'chain:resnum:newresname' (e.g. A:20:HIE). Repeatable. The new name may be at most 4 characters.",
+        help="Residue to rename as 'chain:resnum:newresname' (e.g. A:20:HIE). Repeatable. resnum is the residue number carried by that chain's own records (columns 23-26); it is not the atom serial, and it does not necessarily restart at 1 per chain. The new name may be at most 4 characters.",
     ),
 ):
     """

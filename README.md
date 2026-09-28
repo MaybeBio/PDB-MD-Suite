@@ -176,7 +176,7 @@ Add Water
 Add Membrane
 ```
 
-### Removal of terminal phosphate group for Nucleic Acid
+### `Removal of terminal phosphate group for Nucleic Acid`
 
 > It is usually suggested that while preparing a nucleic acid system for simulation, 5' terminal phosphate group must be removed; or any terminal charged phosphate group should be removed...
 >
@@ -262,7 +262,11 @@ You can use the `res-rename` command to rename residues by chain and residue num
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
+example:
 
+```bash
+pdb-md res-rename -I znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p_renum.pdb -R 
+```
 
 > **A note on 4-character residue names.** A PDB residue name occupies columns 18-20, but some force fields use 4-character names (GROMOS `HISA`/`HISB`, CHARMM `CYSH`) that borrow the blank column 21 between the name and the chain id. Biopython's `PDBIO` formats the residue name with a *minimum* width of 3, which does not truncate: a 4-character name pushes every following column one to the right and emits an 81-column record with the chain id and residue number out of place -- a record fixed-column parsers read wrong. `res-rename` renders the file in memory and repairs those records before saving, so both 3- and 4-character names come out as well-formed 80-column lines. Names longer than 4 characters are rejected outright, since they have nowhere in the format to go. 
 > 
