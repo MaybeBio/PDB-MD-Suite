@@ -235,4 +235,4 @@ Here we summarize several tools for predicting or assigning the protonation stat
 
 ### A typical workflow for preparing a PDB file for MD simulation
 
-pdbfixer 
+pdbfixer(fix missing atoms, remove heterogens and hydrogens) -> pdb-md select (select chains and residues) -> pdb-md termini-rm5p (remove 5' terminal phosphate group for nucleic acids) -> pdb4amber renum -> protonation (add hydrogens) -> pdb2gmx/pdb4amber (generate topology and coordinates for MD simulation)
