@@ -135,6 +135,7 @@ Here we summariz e several important easy to use application for fixing problems
 |pdb4amber|Analyse PDB files and clean them for further usage, especially with the LEaP programs of Amber |https://ambermd.org/AmberTools.php | pdb4amber tool from the AmberTools MD package, designed for preparing PDB files for Amber simulations, also a command-line utility in the AmberTools suite —— `pdb4amber`, it also has several options for pdb file processing, Removing hydrogen or water atoms, see `pdb4amber -h`  |
 |BioForge|BioForge is a pure-Rust toolkit for automated preparation of biological macromolecules. It reads experimental structures (PDB/mmCIF), reconciles them with high-quality residue templates, repairs missing atoms, assigns hydrogens and termini, builds topologies, and optionally solvates the system with water and ions—all without leaving the Rust type system|https://github.com/TKanX/bio-forge||
 |pdbtools|A set of tools for manipulating and doing calculations on wwPDB macromolecule structure files|https://github.com/harmslab/pdbtools| see `File/structure manipulation` part for cleaning function in https://github.com/harmslab/pdbtools#filestructure-manipulation |
+|pdb-tools|A dependency-free cross-platform swiss army knife for PDB files|https://github.com/haddocking/pdb-tools|see https://www.bonvinlab.org/pdb-tools/|
 
 
 ### `normal preprocessing`
@@ -210,7 +211,7 @@ Wrote znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p.pdb
 ```
 
 
-### `protonation(add hydrogens)`
+### `protonation(add hydrogens) and residue renaming`
 
 protonation state of the protein is important for MD simulation. The protonation state of a protein can be determined by the pH of the environment, which can affect the charge and conformation of the protein.
 
@@ -227,6 +228,21 @@ Here we summarize several tools for predicting or assigning the protonation stat
 |pdb2gmx| `gmx pdb2gmx`, see above| https://manual.gromacs.org/current/onlinehelp/gmx-pdb2gmx.html| pdb2gmx --ignh |
 |pdbfixer| see above |https://github.com/openmm/pdbfixer <br><br> https://htmlpreview.github.io/?https://github.com/openmm/pdbfixer/blob/master/Manual.html| |
 |tleap/pdb4amber|see ambertools above|  | |
+
+> Of course, in most cases, people still rely on `prior knowledge` to determine the protonation state of specific residues. For example, tetracoordinate zinc finger proteins have been thoroughly studied, and the protonation states of coordinating atoms within this motif are well known, so computational tools are generally not required for such determinations.
+>
+> In many cases, `successful assignment of protonation states is often coupled with residue renaming operations`. This is because in most force fields, the protonation state of a residue is distinguished by its residue name. For instance, the three protonation states of HIS correspond to three residue names: HID, HIE, and HIP. Therefore, residue renaming is usually needed after the protonation state is determined.
+>
+> Take the classic tetracoordinate zinc finger protein as an example. The coordinating CYS and HIS residues are commonly renamed to CYM, HID/HIE/HIP, or further processed (e.g., ZAFF), so that the force field can correctly recognize their protonation states.
+>
+> Here we take ZAFF as an example, with reference to [ZAFF](https://ambermd.org/tutorials/advanced/tutorial20/ZAFF.php).
+
+
+![alt text](./figs/image3.png)
+
+
+
+
 
 
 ### ``
