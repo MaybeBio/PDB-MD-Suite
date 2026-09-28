@@ -8,6 +8,7 @@ from Bio.PDB import MMCIFParser, PDBIO, PDBParser
 from .utils import load_pdb, save_pdb
 from .MultiChainSelector import MultiChainSelector
 from .SingleChainSelector import SingleChainSelector
+from .rename import MAX_RESNAME_LEN, rename_residues, save_pdb_keeping_columns
 from .termini import strip_5_phosphate
 
 app = typer.Typer(help="Pre- and post-processing toolkit for PDB/MMCIF structure files in molecular dynamics workflows.", no_args_is_help=True)
@@ -183,6 +184,78 @@ def termini_rm5p_cmd(
 
 @app.command("res-rename", no_args_is_help=True)
 def res_rename_cmd(
+    input_file: Path = typer.Option(..., "--input", "-I", help="Input PDB or MMCIF file"),
+    output_file: Optional[Path] = typer.Option(
+        None,
+        "--output",
+        "-O",
+        help="Output PDB file, defaults to <input stem>_renamed.pdb in the current working directory",
+    ),
+    renames: list[str] = typer.Option(
+        ...,
+        "--rename",
+        "-R",
+        help="Residue to rename as 'chain:resnum:newresname' (e.g. A:20:HIE). Repeatable. The new name may be at most 4 characters.",
+    ),
+):
+    """
+    Rename residues of specified chains and residue numbers, e.g. to the residue names a
+    force field expects for a given protonation state (HIS -> HIE/HID/HIP, CYS -> CYM).
+    """
+
+    # Parse the -R entries into (chain_id, resseq, new_resname) triples,
+    # validating here so a malformed entry fails before any file is read.
+    rename_list = []
+    for entry in renames:
+        parts = entry.split(":")
+        if len(parts) != 3:
+            raise ValueError(
+                f"Invalid --rename entry: {entry!r}. Expected 'chain:resnum:newresname'."
+            )
+        chain_id, resnum_str, new_resname = (part.strip() for part in parts)
+        if not chain_id or not resnum_str or not new_resname:
+            raise ValueError(
+                f"Invalid --rename entry: {entry!r}. Expected 'chain:resnum:newresname'."
+            )
+        if not resnum_str.isdigit():
+            raise ValueError(
+                f"Invalid residue number in {entry!r}: {resnum_str!r}. Expected an integer."
+            )
+        if len(new_resname) > MAX_RESNAME_LEN:
+            raise ValueError(
+                f"Residue name {new_resname!r} is {len(new_resname)} characters; "
+                f"a PDB residue name holds at most {MAX_RESNAME_LEN}."
+            )
+        rename_list.append((chain_id, int(resnum_str), new_resname))
+
+    # parse the structure
+    structure = load_pdb(input_file)
+
+    # warn about requested chains that are absent, so a typo does not pass silently
+    for chain_id in {chain_id for chain_id, _, _ in rename_list}:
+        if chain_id not in structure[0]:
+            typer.echo(f"WARNING: chain {chain_id} not found in {input_file}", err=True)
+
+    # rename the residues, collecting what was applied
+    # the structure is modified in place, so we don't need to assign the return value
+    applied = rename_residues(structure, rename_list)
+
+    if not output_file:
+        output_file = Path(input_file.stem + "_renamed.pdb")
+    save_pdb_keeping_columns(structure, output_file)
+
+    # report which file was written and what changed. Reported from `applied` rather
+    # than from the requested list, so that listing one residue twice reports the final
+    # state once instead of pairing the first request's target with the last one's name.
+    typer.echo(f"Wrote {output_file}")
+    for (chain_id, resseq), (old_resname, new_resname) in applied.items():
+        typer.echo(f"  chain {chain_id}: {resseq} {old_resname} -> {new_resname}")
+    for chain_id, resseq, _ in rename_list:
+        if (chain_id, resseq) not in applied and chain_id in structure[0]:
+            typer.echo(
+                f"WARNING: residue {resseq} not found in chain {chain_id}", err=True
+            )
+
 
 if __name__ == "__main__":
     app()
