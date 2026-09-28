@@ -240,7 +240,7 @@ Here we summarize several tools for predicting or assigning the protonation stat
 
 ![alt text](./figs/image3.png)
 
-
+> For residue renaming, most scripts are based on raw text processing given that the PDB file is an 80-column, fixed-width text file. However, this approach is not robust and can easily introduce errors **just as manual editing does**. Therefore, we recommend using the 'biopython' library to read the PDB file, modify the residue names, and then write it back to a new PDB file. This method is more robust and less error-prone.
 
 
 

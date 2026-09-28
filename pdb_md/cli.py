@@ -181,5 +181,8 @@ def termini_rm5p_cmd(
 
 
 
+@app.command("res-rename", no_args_is_help=True)
+def res_rename_cmd(
+
 if __name__ == "__main__":
     app()
