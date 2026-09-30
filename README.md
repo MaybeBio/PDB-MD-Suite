@@ -384,6 +384,8 @@ grep "ZN[0-9]\|CY[0-9]\|HD[0-9]\|HE[0-9]" znf263_all_hs7_30_0.54_0.37_model_0_se
 ## 3️⃣ Force Fields & Water Models
 
 > How to Prepare Force Fields and Choose Water Models in MD Simulation Setup?
+>
+> Please check our materials in [Molecular Dynamics Force Fields: How to Choose, How to Configure, and What to Do When Parameters Are Missing?]()
 
 
 
