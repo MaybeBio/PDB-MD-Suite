@@ -385,9 +385,21 @@ grep "ZN[0-9]\|CY[0-9]\|HD[0-9]\|HE[0-9]" znf263_all_hs7_30_0.54_0.37_model_0_se
 
 > How to Prepare Force Fields and Choose Water Models in MD Simulation Setup?
 >
-> Please check our materials in [Molecular Dynamics Force Fields: How to Choose, How to Configure, and What to Do When Parameters Are Missing?]()
+> Please check our materials in [Molecular Dynamics Force Fields: How to Choose, How to Configure, and What to Do When Parameters Are Missing?](./refers/ff&water.md)
 
 
+| System | Starting parameter sets to consider | Items to be verified |
+|--------|--------------------------------------|-----------------------|
+| Canonical proteins | AMBER ff14SB/ff19SB, CHARMM36m, OPLS-AA/M | Protein type, conformational state, solvent setup, and relevant experimental validations |
+| Protein–small organic molecule | Protein force field paired with GAFF2, CGenFF, OpenFF Sage, or corresponding OPLS small-molecule parameters | Ligand chemical environment, charge scheme, critical dihedral angles, and cross-component interactions |
+| DNA, RNA and protein–nucleic acid complexes | Dedicated nucleic acid force fields, e.g., AMBER DNA/RNA parameter sets | DNA and RNA are not interchangeable; sequence, structure, modifications and ionic conditions need to be checked |
+| Lipid bilayers, membrane proteins | Specialized lipid parameters such as AMBER Lipid21 | Lipid species, membrane composition, and compatibility with proteins, water and ions |
+| Sugars, polysaccharides, glycoproteins | Carbohydrate force fields such as GLYCAM | Monosaccharide stereochemistry, anomeric configuration, linkage positions, glycosidic bonds and protein–glycan linkages |
+| Intrinsically disordered proteins, flexible peptides | Parameter sets validated for disordered states, e.g., studies using CHARMM36m | Stability alone is insufficient; conformational distribution, global dimensions and secondary structure propensity must be assessed |
+| Metalloproteins, metalloenzymes | Specialized nonbonded or bonded models, or QM/MM approaches depending on the research question | Oxidation state, coordination geometry, ligand exchange, and possible chemical reactions |
+| Non-natural residues, post-translational modifications, covalent ligands | Pre-validated custom residue parameters or supplementary parameterization | Not only newly added groups but also new covalent connections to the parent structure |
+
+Selection criteria for proteins, small molecules and specialized components can be found in the original publications of ff19SB, CHARMM36m and OPLS-AA/M, as well as AMBER official documentation for component parameters.
 
 
 
