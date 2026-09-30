@@ -385,7 +385,9 @@ grep "ZN[0-9]\|CY[0-9]\|HD[0-9]\|HE[0-9]" znf263_all_hs7_30_0.54_0.37_model_0_se
 
 > How to Prepare Force Fields and Choose Water Models in MD Simulation Setup?
 >
-> Please check our materials in [Molecular Dynamics Force Fields: How to Choose, How to Configure, and What to Do When Parameters Are Missing?](./refers/ff&water.md)
+> Please check our materials first in [Molecular Dynamics Force Fields: How to Choose, How to Configure, and What to Do When Parameters Are Missing?](./refers/ff&water.md)
+>
+> And then check the official documentation of the MD simulation software you are using for detailed instructions on how to prepare force fields and choose water models.
 
 
 | System | Starting parameter sets to consider | Items to be verified |
@@ -399,9 +401,18 @@ grep "ZN[0-9]\|CY[0-9]\|HD[0-9]\|HE[0-9]" znf263_all_hs7_30_0.54_0.37_model_0_se
 | Metalloproteins, metalloenzymes | Specialized nonbonded or bonded models, or QM/MM approaches depending on the research question | Oxidation state, coordination geometry, ligand exchange, and possible chemical reactions |
 | Non-natural residues, post-translational modifications, covalent ligands | Pre-validated custom residue parameters or supplementary parameterization | Not only newly added groups but also new covalent connections to the parent structure |
 
-Selection criteria for proteins, small molecules and specialized components can be found in the original publications of ff19SB, CHARMM36m and OPLS-AA/M, as well as AMBER official documentation for component parameters.
+> Selection criteria for proteins, small molecules and specialized components can be found in the original publications of ff19SB, CHARMM36m and OPLS-AA/M, as well as AMBER official documentation for component parameters.
 
+For typical protein-nucleic acid complexes, the following force field combinations are often used:
+```bash
+CHARMM36m/CHARMM36 + CHARMM36 NA + CHARMM-TIP3P
+Amber-ff19SB + OL24/OL21 + OPC
+Amber-ff14SB + OL15/bsc1 + TIP3P 
+```
 
+> e.g. Considering the compatibility of ZAFF (built with tip3p water model) with the protein-nucleic acid force field, we recommend using the following force field combinations for Zinc finger protein-DNA complex: `Amber-ff14SB + bsc1 + TIP3P`
+
+  
 
 
 ## final
