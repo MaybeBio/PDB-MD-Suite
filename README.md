@@ -412,7 +412,149 @@ Amber-ff14SB + OL15/bsc1 + TIP3P
 
 > e.g. Considering the compatibility of ZAFF (built with tip3p water model) with the protein-nucleic acid force field, we recommend using the following force field combinations for Zinc finger protein-DNA complex: `Amber-ff14SB + bsc1 + TIP3P`
 
-  
+## 4️⃣ Topology and System Construction
+
+> `Structure Preprocessing & Standardization`: done in 1️⃣2️⃣3️⃣
+>
+> `Force Field Allocation & Initial Topology Generation`:
+>
+> 1. Assign force field parameters: Map the atom types, charges (e.g., RESP or AM1-BCC for ligands), and bonding rules based on the selected force field (e.g., AMBER, CHARMM, OPLS).
+> 2. Generate structural topology: Create the core topology file containing molecular connectivity, mass, and non-bonded parameters.
+>
+> `System Solvation & Periodic Boundary Definition`: 
+> 1. Define the simulation box: Setup Periodic Boundary Conditions (PBC) by choosing a box geometric shape (e.g., cubic, truncated octahedron) and setting a minimum clearance distance from the solute to the box edge (typically 10–12 Å).
+> 2. Add solvent molecules: Fill the defined box with an explicit water model (e.g., TIP3P, SPC/E, OPC).
+>
+> `System Neutralization & Ionization`:
+> 1. Neutralize net charge: Calculate the total net charge of the system and add a corresponding number of counter-ions (Na⁺ or Cl⁻) to achieve a net charge of zero.
+> 2. Set ionic concentration: Add extra ion pairs to mimic physiological salinity conditions (commonly 0.15 M NaCl).
+>
+> `Final Coordination & Parameter Export`:
+> - Compile simulation-ready inputs: Merge all components into final structural coordinate files and master topology files compatible with your targeted simulation engine (e.g., .prmtop/.inpcrd for AMBER, or .gro/.top for GROMACS).
+
+For typical Gromacs topology construction workflow, you can refer to [mdtutorials](http://www.mdtutorials.com/gmx/index.html), generally like:
+
+```bash
+# after `Structure Preprocessing & Standardization` according to your system
+
+# initialize your topology
+# The topology (topol.top by default) contains all the information necessary to define the molecule within a simulation. This information includes nonbonded parameters (atom types and charges) as well as bonded parameters (bonds, angles, and dihedrals)
+gmx pdb2gmx 
+
+# Defining the Unit Cell & Adding Solvent
+# Define the box dimensions using the editconf module
+gmx editconf
+# Fill the box with water using the solvate module
+gmx solvate
+
+# Adding Ions
+# The tool for adding ions within GROMACS is called genion. What genion does is read through the topology and replace water molecules with the ions that the user specifies. The input is called a run input file, which has an extension of .tpr; this file is produced by the GROMACS grompp module (GROMACS pre-processor), which will also be used later when we run our first simulation. What grompp does is process the coordinate file and topology (which describes the molecules) to generate an atomic-level input (.tpr). The .tpr file contains all the parameters for all of the atoms in the system.
+# To produce a .tpr file with grompp, we will need an additional input file, with the extension .mdp (molecular dynamics parameter file); grompp will assemble the parameters specified in the .mdp file with the coordinates and topology information to generate a .tpr file.
+# An .mdp file is normally used to run energy minimization or an MD simulation, but in this case is simply used to generate an atomic description of the system
+
+# prepare your .mdp file ——> produce a .tpr file with grompp + .mdp ——> add ions with genion + .tpr
+gmx grompp
+gmx genion
+```
+
+
+
+Normally, we can directly use the complete GROMACS workflow. However, there are some exceptional cases. For example, when modeling zinc finger proteins involving ZAFF, we need to employ Amber ZAFF to construct the topological system.
+
+> For details, please refer to [ZAFF tutorial](https://ambermd.org/tutorials/advanced/tutorial20/ZAFF.php) and  [ZAFF issue in Amber forum](https://cse.google.com/cse?cx=partner-pub-9700140137778662:8927431201&ie=UTF-8&q=ZAFF+&sa=Search&ref=)
+
+
+```bash
+source leaprc.protein.ff14SB # for protein
+source leaprc.DNA.bsc1 # for dna
+source leaprc.water.tip3p # for water
+addAtomTypes { { "ZN" "Zn" "sp3" } { "S4" "S" "sp3" } { "N3" "N" "sp3" } } # C2H2 center ID4
+loadamberparams frcmod.ions1lm_126_tip3p # for ions
+loadamberprep ZAFF.prep
+loadamberparams ZAFF.frcmod
+mol = loadpdb znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p_renum_renamed.pdb
+
+# for 9 zn2+ ions, SG for CY4, NE2 for HD2
+# CY4 list (CYS): 12,15,68,71,96,99,124,127,152,155,209,212,237,240,265,268,293,296
+# HD2 list (HIS): 28,32,84,88,112,116,140,144,168,172,225,229,253,257,281,285,309,313
+
+# for zn1 (mol.316.ZN)
+bond mol.316.ZN mol.12.SG
+bond mol.316.ZN mol.15.SG
+bond mol.316.ZN mol.28.NE2
+bond mol.316.ZN mol.32.NE2
+
+# for zn2 (mol.317.ZN)
+bond mol.317.ZN mol.68.SG
+bond mol.317.ZN mol.71.SG
+bond mol.317.ZN mol.84.NE2
+bond mol.317.ZN mol.88.NE2
+
+# for zn3 (mol.318.ZN)
+bond mol.318.ZN mol.96.SG
+bond mol.318.ZN mol.99.SG
+bond mol.318.ZN mol.112.NE2
+bond mol.318.ZN mol.116.NE2
+
+# for zn4 (mol.319.ZN)
+bond mol.319.ZN mol.124.SG
+bond mol.319.ZN mol.127.SG
+bond mol.319.ZN mol.140.NE2
+bond mol.319.ZN mol.144.NE2
+
+# for zn5 (mol.320.ZN)
+bond mol.320.ZN mol.152.SG
+bond mol.320.ZN mol.155.SG
+bond mol.320.ZN mol.168.NE2
+bond mol.320.ZN mol.172.NE2
+
+# for zn6 (mol.321.ZN)
+bond mol.321.ZN mol.209.SG
+bond mol.321.ZN mol.212.SG
+bond mol.321.ZN mol.225.NE2
+bond mol.321.ZN mol.229.NE2
+
+# for zn7 (mol.322.ZN)
+bond mol.322.ZN mol.237.SG
+bond mol.322.ZN mol.240.SG
+bond mol.322.ZN mol.253.NE2
+bond mol.322.ZN mol.257.NE2
+
+# for zn8 (mol.323.ZN)
+bond mol.323.ZN mol.265.SG
+bond mol.323.ZN mol.268.SG
+bond mol.323.ZN mol.281.NE2
+bond mol.323.ZN mol.285.NE2
+
+# for zn9 (mol.324.ZN)
+bond mol.324.ZN mol.293.SG
+bond mol.324.ZN mol.296.SG
+bond mol.324.ZN mol.309.NE2
+bond mol.324.ZN mol.313.NE2
+
+# check the mol
+check mol
+
+# save the pdb file
+savepdb mol znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p_renum_renamed_dry.pdb
+# optional:Save the topology and coordiante files
+# saveamberparm mol znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p_renum_renamed_dry.prmtop znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p_renum_renamed_dry.inpcrd
+
+# solvate the system using TIP3P water box, 10 A is general, need ≥ non-bond cutoff/2
+solvateBox mol TIP3PBOX 10.0
+
+# 
+
+```
+
+## 5️⃣ Start Simulation
+
+A typical simulation
+
+Similarly, we can adopt the amber system and perform simulations with the amber dynamics engine,
+or adopt the gromacs system and carry out simulations using the gromacs dynamics engine.
+
+Following point 4️⃣ above, we uniformly use the gromacs simulation engine here to simulate the topological system constructed by amber ZAFF.
 
 
 ## final
