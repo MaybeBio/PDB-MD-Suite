@@ -10,6 +10,7 @@ from .MultiChainSelector import MultiChainSelector
 from .SingleChainSelector import SingleChainSelector
 from .rename import MAX_RESNAME_LEN, rename_residues, save_pdb_keeping_columns
 from .termini import strip_5_phosphate
+from .neighbor import find_neighbors, atom_identity
 
 app = typer.Typer(help="Pre- and post-processing toolkit for PDB/MMCIF structure files in molecular dynamics workflows.", no_args_is_help=True)
 
@@ -255,6 +256,29 @@ def res_rename_cmd(
             typer.echo(
                 f"WARNING: residue {resseq} not found in chain {chain_id}", err=True
             )
+
+
+@app.command("neighbor", no_args_is_help=True)
+def neighbor_cmd(
+    input_file: Path = typer.Option(..., "--input", "-I", help="Input PDB or MMCIF file"),
+    serial: int = typer.Option(..., "--serial",  "-S", help="Atom serial number (PDB columns 7-11) to search around"),
+    distance: float = typer.Option(..., "--distance", "-D", help="Distance threshold in Angstrom, ≤ threshold is considered a neighbor"),
+):
+    """
+    Find all atoms within a distance of a given atom (identified by its serial number).
+    """
+
+    structure = load_pdb(input_file)
+    # neighbors now (atom - target, atom) tuples
+    target, neighbors = find_neighbors(structure, serial, distance)
+
+    t = atom_identity(target)
+    typer.echo(f"# target: serial {t[0]}  chain {t[1]}  {t[3]} {t[2]}  atom {t[4]}")
+    typer.echo("#serial\tchain\tresid\tresname\tatom\telement\tdistance")
+    for dist, atom in neighbors:
+        a = atom_identity(atom)
+        typer.echo(f"{a[0]}\t{a[1]}\t{a[2]}\t{a[3]}\t{a[4]}\t{a[5]}\t{dist:.3f}")
+    typer.echo(f"# {len(neighbors)} atoms within {distance} A")
 
 
 if __name__ == "__main__":

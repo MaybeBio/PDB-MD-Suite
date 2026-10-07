@@ -457,12 +457,9 @@ gmx grompp
 gmx genion
 ```
 
-
-
 Normally, we can directly use the complete GROMACS workflow. However, there are some exceptional cases. For example, when modeling zinc finger proteins involving ZAFF, we need to employ Amber ZAFF to construct the topological system.
 
 > For details, please refer to [ZAFF tutorial](https://ambermd.org/tutorials/advanced/tutorial20/ZAFF.php) and  [ZAFF issue in Amber forum](https://cse.google.com/cse?cx=partner-pub-9700140137778662:8927431201&ie=UTF-8&q=ZAFF+&sa=Search&ref=)
-
 
 ```bash
 source leaprc.protein.ff14SB # for protein
@@ -546,6 +543,35 @@ solvateBox mol TIP3PBOX 10.0
 # 
 
 ```
+
+In the above bonding process of ZAFF, we need to identify which Zn ion is coordinated in each zinc finger. Since the Zn ions output by alphafold3 only have coordinates, we need to make judgments separately based on the coordination geometric environment of each Zn ion.
+
+For general metal coordination problems, we can use distance constraints to `identify the coordinated central atoms` or `correct parts with incorrect coordination geometry` in the initial structure.
+
+Here, you can use the 'neighbor' command to find the corresponding chemical gemoetry around the the specifc ZN atom
+
+```bash
+❯ pdb-md neighbor --help
+                                                                                                                                                                                                                                                     
+ Usage: pdb-md neighbor [OPTIONS]                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                     
+ Find all atoms within a distance of a given atom (identified by its serial number).                                                                                                                                                                 
+                                                                                                                                                                                                                                                     
+╭─ Options ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ *  --input     -I      <path>   Input PDB or MMCIF file [required]                                                                                                                                                                                │
+│ *  --serial    -S      <int>    Atom serial number (PDB columns 7-11) to search around [required]                                                                                                                                                 │
+│ *  --distance  -D      <float>  Distance threshold in Angstrom, ≤ threshold is considered a neighbor [required]                                                                                                                                   │
+│    --help                       Show this message and exit.                                                                                                                                                                                       │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+```
+
+e.g. use 5A here to identify which Zn ion is coordinated in each zinc finger
+
+```bash
+# for zn-
+
+```
+
 
 ## 5️⃣ Start Simulation
 
