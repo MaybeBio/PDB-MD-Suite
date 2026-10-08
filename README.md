@@ -45,6 +45,30 @@ pip install pdb-md
                                                                
 ```
 
+## 0️⃣ prepare initial structure for your system
+
+> For monomer modeling, take protein CTCF as an example.
+
+- If an experimental structure such as a PDB entry is available, directly download the experimental structure.
+- If no experimental structure is available:
+  - Homology modeling: Common homology modeling tools include Swiss-Model, Modeller, I-TASSER, etc. `The uniprot-structure entry usually provides links to existing homology modeling structure databases`, which generally point to the Swiss-Model database.
+  - Prediction: Use SOTA prediction tools such as alphafold3.
+  - Prediction database: The AlphafoldDB database contains predicted structures of many proteins, which can be downloaded directly.
+
+> For complex modeling, such as the CTCF-DNA complex
+
+- Molecular docking: The monomer structures of the protein and DNA can be obtained via the above methods, and then molecular docking tools are used for complex modeling, such as HADDOCK, ZDOCK, HDOCK, etc.
+- Homology modeling: When performing homology modeling for proteins, the template may contain complex information (for example, when searching for homologous templates of CTCF, we may find existing crystal structures of homologous proteins bound to DNA sequences). In such cases, homology modeling tools can be directly used for complex modeling.
+- Complex structure prediction: Use SOTA complex structure prediction tools such as alphafold3.
+
+One issue to note: unreasonable parts in the obtained structure can generally be corrected in the subsequent simulated energy minimization stage.
+
+|Description|Url|
+|--|--|
+|Homology Modeling|https://strbio.github.io/homology.html  <br> https://strbio.github.io/advanced.html|
+|Modeling Resources|https://strbio.github.io/links.html|
+
+
 ## 1️⃣ select
 
 > [!WARNING] 
@@ -567,10 +591,55 @@ Here, you can use the 'neighbor' command to find the corresponding chemical gemo
 
 e.g. use 5A here to identify which Zn ion is coordinated in each zinc finger
 
-```bash
-# for zn-
+> Generally, ZN-S or ZN-N bond length in typical ZAFF topology lies within 2.0~2.5A
+>
+> If the structure still fails to meet your expected results within the specified coordination distance range, for example, the position of Zn ions in the structure output by alphafold3 is placed randomly, then there may be some issues with this structure.
 
+```bash
+# for zn-316, use 5A distance threshold
+pdb-md neighbor -S 316 -D 5 -I znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p_renum_renamed.pdb
+# or
+# pdb-md neighbor -S 316 -D 5 -I znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p_renum_renamed.pdb  | grep "CY[0-9]\|HD[0-9]"
+
+# target: serial 316  chain A  GLY 40  atom N
+#serial chain   resid   resname atom    element distance
+310     A       39      MET     C       C       1.324
+317     A       40      GLY     CA      C       1.466
+311     A       39      MET     O       O       2.235
+309     A       39      MET     CA      C       2.444
+318     A       40      GLY     C       C       2.479
+286     A       36      ARG     O       O       2.635
+320     A       41      VAL     N       N       2.755
+308     A       39      MET     N       N       2.833
+312     A       39      MET     CB      C       3.225
+319     A       40      GLY     O       O       3.555
+323     A       41      VAL     O       O       3.667
+285     A       36      ARG     C       C       3.709
+304     A       38      CYS     C       C       3.812
+322     A       41      VAL     C       C       3.944
+321     A       41      VAL     CA      C       3.975
+284     A       36      ARG     CA      C       4.231
+305     A       38      CYS     O       O       4.301
+277     A       35      GLU     O       O       4.527
+297     A       37      LEU     O       O       4.618
+296     A       37      LEU     C       C       4.630
+313     A       39      MET     CG      C       4.665
+302     A       38      CYS     N       N       4.755
+294     A       37      LEU     N       N       4.780
+327     A       42      ASP     N       N       4.799
+303     A       38      CYS     CA      C       4.896
+324     A       41      VAL     CB      C       4.979
+# 26 atoms within 5.0 A
 ```
+
+> [!WARNING] 
+> Therefore, there is a very serious issue here. ZN-316 can hardly find a corresponding CCHH coordinating atom within the normal CCHH coordination distance environment (even though we have set the distance to 5Å). And we have observed similar issues with other Zn ions in the structure. This indicates that the initial structure output by alphafold3 is problematic, especially on the zinc finger.
+>
+> There are three solutions:
+> - Proceed with processing. Slightly longer bond lengths within a certain range can be pulled back through simulation.
+> - Modify the ZN coordinates in the pdb file and assign them directly one-to-one to the center of the C2H2 tetrahedron. Of course, directly assigning ZN coordinates does not necessarily guarantee accurate ZN coordination geometry, as there is no guarantee that the bond length between each ZN-coordinating atom falls within the theoretical range. It is very likely that the side-chain structure predicted and output by alphafold3 is flawed. In that case, we need to modify the side-chain structure of the coordinating residues and then reassign the ZN coordinates.
+> - Use an alternative initial structure, such as employing homology modeling. Please loop back to the index 0️⃣ of this tutorial.
+
 
 
 ## 5️⃣ Start Simulation
