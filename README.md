@@ -754,9 +754,36 @@ Some third-party methods for approximate calculation:
 > http://archive.ambermd.org/202002/0194.html (I have tested this and recommend)
 
 
+## 5️⃣ Topology conversion
 
+Since Ambertools was used earlier to construct the topology system of ZAFF, we need to convert the Amber topology file to a Gromacs topology file if the Gromacs simulation engine is adopted downstream.
 
-## 5️⃣ Start Simulation
+Three conversion methods have been collected so far:
+
+> amb2gro_top_gro.py script: comes with ambertools installation
+> 
+> ParmEd: https://github.com/ParmEd/ParmEd (I have tested this and recommend)
+>
+> acpype: https://github.com/alanwilter/acpype
+
+e.g. using ParmEd to convert the topology file:
+
+```python
+import parmed as pmd
+
+# convert AMBER topology to GROMACS, CHARMM formats
+amber = pmd.load_file('znf263_hs7_solv.prmtop', 'znf263_hs7_solv.inpcrd')
+# Save a GROMACS topology and GRO files
+amber.save('znf263_hs7_solv_gmx.top')
+amber.save('znf263_hs7_solv_gmx.gro')
+```
+
+> [!WARNING]
+> You need to check the converted topology file and coordinate file to ensure that the conversion is correct. For example, check whether the number of atoms in the converted topology file matches the number of atoms in the coordinate file, and whether the atom types and charges are consistent with the original Amber topology file.
+>
+> Always check the `[ molecules ]` field in the converted GROMACS .top file
+
+## 6️⃣ Start Simulation
 
 A typical simulation
 
