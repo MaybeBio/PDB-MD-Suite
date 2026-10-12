@@ -783,6 +783,10 @@ amber.save('znf263_hs7_solv_gmx.gro')
 >
 > Always check the `[ molecules ]` field in the converted GROMACS .top file
 
+Here, we can visualize the converted GROMACS topology file using VMD or PyMOL to check whether the structure is correct (directly load .gro file in pymol). 
+
+![alt text](./figs/image4.png)
+
 ## 6️⃣ Start Simulation
 
 A typical simulation
