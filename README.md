@@ -396,7 +396,7 @@ Wrote znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p_renum_renamed.pdb
 
 ```
 grep "^TER" znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p_renum_renamed.pdb       # TER after each chain and after protein before ZN
-grep "ZN[0-9]\|CY[0-9]\|HD[0-9]\|HE[0-9]" znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p_renum_renamed.pdb | head
+grep "ZN[0-9]\|CY[0-9]\|HD[0-9]" znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p_renum_renamed.pdb | head
 ```
 
 > **A note on 4-character residue names.** A PDB residue name occupies columns 18-20, but some force fields use 4-character names (GROMOS `HISA`/`HISB`, CHARMM `CYSH`) that borrow the blank column 21 between the name and the chain id. Biopython's `PDBIO` formats the residue name with a *minimum* width of 3, which does not truncate: a 4-character name pushes every following column one to the right and emits an 81-column record with the chain id and residue number out of place -- a record fixed-column parsers read wrong. `res-rename` renders the file in memory and repairs those records before saving, so both 3- and 4-character names come out as well-formed 80-column lines. Names longer than 4 characters are rejected outright, since they have nowhere in the format to go. 
@@ -499,6 +499,7 @@ mol = loadpdb znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p_renum_renamed.pd
 # CY4 list (CYS): 12,15,68,71,96,99,124,127,152,155,209,212,237,240,265,268,293,296
 # HD2 list (HIS): 28,32,84,88,112,116,140,144,168,172,225,229,253,257,281,285,309,313
 
+# ⚠️ ZN numbering below is just a showcase
 # for zn1 (mol.316.ZN)
 bond mol.316.ZN mol.12.SG
 bond mol.316.ZN mol.15.SG
@@ -552,23 +553,9 @@ bond mol.324.ZN mol.293.SG
 bond mol.324.ZN mol.296.SG
 bond mol.324.ZN mol.309.NE2
 bond mol.324.ZN mol.313.NE2
-
-# check the mol
-check mol
-
-# save the pdb file
-savepdb mol znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p_renum_renamed_dry.pdb
-# optional:Save the topology and coordiante files
-# saveamberparm mol znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p_renum_renamed_dry.prmtop znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p_renum_renamed_dry.inpcrd
-
-# solvate the system using TIP3P water box, 10 A is general, need ≥ non-bond cutoff/2
-solvateBox mol TIP3PBOX 10.0
-
-# 
-
 ```
 
-In the above bonding process of ZAFF, we need to identify which Zn ion is coordinated in each zinc finger. Since the Zn ions output by alphafold3 only have coordinates, we need to make judgments separately based on the coordination geometric environment of each Zn ion.
+In the above bonding process of ZAFF according to the protocol, we need to identify which Zn ion is coordinated in each zinc finger. Since the Zn ions output by alphafold3 only have coordinates, we need to make judgments separately based on the coordination geometric environment of each Zn ion.
 
 For general metal coordination problems, we can use distance constraints to `identify the coordinated central atoms` or `correct parts with incorrect coordination geometry` in the initial structure.
 
@@ -640,6 +627,133 @@ pdb-md neighbor -S 316 -D 5 -I znf263_all_hs7_30_0.54_0.37_model_0_selected_rm5p
 > - Modify the ZN coordinates in the pdb file and assign them directly one-to-one to the center of the C2H2 tetrahedron. Of course, directly assigning ZN coordinates does not necessarily guarantee accurate ZN coordination geometry, as there is no guarantee that the bond length between each ZN-coordinating atom falls within the theoretical range. It is very likely that the side-chain structure predicted and output by alphafold3 is flawed. In that case, we need to modify the side-chain structure of the coordinating residues and then reassign the ZN coordinates.
 > - Use an alternative initial structure, such as employing homology modeling. Please loop back to the index 0️⃣ of this tutorial.
 
+Here, we revisit the entire workflow from the start, and we now use homology modeling to generate a more reasonable initial structure for the zinc finger protein-DNA complex.
+
+> According to literature statistics, for the selection of initial structures in the structural modeling section, most researchers still mainly adopt homology modeling combined with manual fine-tuning or other docking techniques. Relatively few directly use structure prediction tools such as AlphaFold3. The papers adopting the latter approach claim that the structural files they used achieve relatively high values in terms of confidence and interaction interface metrics. This indicates that for refined simulations (rather than large-scale proteome batch studies), homology modeling and other related techniques remain dominant, unless large-scale batch analysis is required or the predicted results have excellent metrics.
+
+```bash
+source leaprc.protein.ff14SB
+source leaprc.DNA.bsc1
+source leaprc.water.tip3p
+
+# ZAFF metal-center atom types (C2H2 Zn site)
+addAtomTypes { { "ZN" "Zn" "sp3" } { "S4" "S" "sp3" } { "N3" "N" "sp3" } }
+
+loadamberparams frcmod.ions1lm_126_tip3p
+loadamberprep ZAFF.prep
+loadamberparams ZAFF.frcmod
+
+mol = loadpdb $OUR_Homology_Model_PDB
+
+# ---- Zn coordination bonds: 9 Zn x (2 SG + 2 NE2) = 36 bonds ----
+# ZF1 : Zn 365 <- Cys 62,65   His 78,82
+bond mol.365.ZN mol.62.SG
+bond mol.365.ZN mol.65.SG
+bond mol.365.ZN mol.78.NE2
+bond mol.365.ZN mol.82.NE2
+
+# ... (similar bonding commands for other Zn ions) ...
+
+# ---- QC: report net charge + geometry before saving ----
+charge mol
+check mol
+
+# ---- dry topology (inspect Zn bonding survived before solvation) ----
+saveamberparm mol znf263_hs7_dry.prmtop znf263_hs7_dry.inpcrd
+savepdb mol znf263_hs7_dry.pdb
+
+# ---- solvate + set 0.15 M NaCl AND neutralize in ONE step (SPLIT method) ----
+# refer to http://archive.ambermd.org/202002/0194.html
+solvateBox mol TIP3PBOX 10.0
+# SPLIT (Machado et al. JCTC 2020, doi:10.1021/acs.jctc.9b00953):
+#   No = Nw*Co/56 ;  N+ = No - Q/2 ;  N- = No + Q/2
+#   Nw = 18766 waters, Co = 0.15 M, Q = -34  =>  No = 50, N+(NA) = 67, N-(CL) = 33
+addionsrand mol NA 67 CL 33
+
+# ---- final solvated topology ----
+charge mol
+saveamberparm mol znf263_hs7_solv.prmtop znf263_hs7_solv.inpcrd
+savepdb mol znf263_hs7_solv.pdb
+
+quit
+
+```
+
+Construct the above script as `tleap_zaff.in`, then run it in AmberTools:
+
+```bash
+tleap -f tleap_zaff.in
+```
+
+No redirection is required. Running the above program will synchronously generate one `leap.log` log file, in which you can view the execution results of each step in the above script as well as some statistical data for the topology system.
+
+It is recommended to check the log after each run of the tleap program and record the following data:
+
+|Item	|Value|
+|--|--|
+|Water model	|TIP3P (TIP3PBOX)|
+|Buffer distance|	10.0 Å (= 1.0 nm)|
+|Box type	|Orthogonal cubic box (solvateBox)|
+|Box angles α/β/γ	|90° / 90° / 90°|
+|Net charge sign|	Negative (DNA + deprotonated Cys)|
+|Neutralizing ion|	NA⁺|
+|Solute vdw bounding box |	98.565 / 55.085 / 58.255 Å|
+|Total bounding box for atom centers|	118.565 / 75.085 / 78.255 Å|
+|Solvent unit box	|18.774 / 18.774 / 18.774 Å|
+|Total vdw box size	|121.742 / 77.891 / 81.303 Å|
+|Volume|	770965.169 A^3 (= 770.965 nm³)|
+|Total mass| 	391382.052 amu|
+|Density|	0.843 g/cc|
+|Solute (DNA+Protein+Zn)|	373 residues/unit,  6638 atoms|
+|Total charge before addng ions|	-34.000180|
+|Solute |	18666 water, 55998 atoms |
+|Na+	|67|
+|CI-|	33|
+|Total	|19139 reside/unit, 62736 atoms|
+
+
+Overall, the main tasks involved in topological system construction are: defining the solvent box, adding ions to neutralize the system, and adding salt to simulate the physiological environment.
+
+> 1️⃣ Define the solvent box
+
+For the solvent box, it is usually necessary to select an appropriate box size and shape according to the size of the simulation system and the required solvent environment. In particular, details such as the buffer distance are related to the PBC correction in the later stage.
+
+Refer to: https://manual.gromacs.org/2026.1/reference-manual/algorithms/periodic-boundary-conditions.html
+
+For conventional simulations, a cubic box is sufficient. If less water is desired, shapes such as a dodecahedron can be used.
+
+The buffer distance is generally set to 10~12 Å (i.e., 1.0 nm and 1.2 nm). A value that is too small may result in an insufficiently large solvent box, while an excessively large value will increase the computational cost.
+
+> 2️⃣ Add ions: neutralization & simulation of physiological environment
+
+When adding ions, ions are generally added to neutralize the system based on the net charge of the system, and Na⁺ or Cl⁻ ions are usually used.
+
+For physiological environment simulation, 0.15 M NaCl is generally added.
+
+In GROMACS, you can check the net charge of the system by viewing the output files generated by `pdb2gmx`. You can also use the simple command below to add ions to neutralize the system and add salt to simulate the physiological environment in one step:
+```bash
+gmx genion -s ions.tpr -o solv_ions.gro -p topol.top -pname NA -nname CL -neutral -conc 0.15
+```
+
+In AmberTools, the system charge can be checked using the ``charge mol`` command in the preceding tleap.in script. After that, ``addionsrand/addions/addions2`` can be used to add ions to neutralize the system.
+
+refer to：https://github.com/pgbarletta/locuaz/blob/92298259874c087f46dbd911ca1bdb354ad9fcea/docs/source/tutorialtleap.rst。
+
+The commonly used commands are as follows:
+```bash
+addions mol CL 0
+addions mol NA 0
+```
+
+But how do I set a specified salt concentration, for example, a physiological salt concentration of 0.15 M? This operation is relatively complicated in AmberTools, and the number of ions to be added usually needs to be calculated according to the formula.
+
+Some third-party methods for approximate calculation:
+
+> https://computecanada.github.io/molmodsim-amber-md-lesson/12-Adding_Ions/index.html
+>
+> http://archive.ambermd.org/202002/0194.html (I have tested this and recommend)
+
+
 
 
 ## 5️⃣ Start Simulation
@@ -656,4 +770,4 @@ Following point 4️⃣ above, we uniformly use the gromacs simulation engine he
 
 ### A typical workflow for preparing a PDB file for MD simulation
 
-pdbfixer(fix missing atoms, remove heterogens and hydrogens) -> pdb-md select (select chains and residues) -> pdb-md termini-rm5p (remove 5' terminal phosphate group for nucleic acids) -> pdb4amber renum(`optional`, but recommended) -> protonation (add hydrogens) status determined, followed by pdb-md res-rename (rename residues to the force field's protonation-state names) -> pdb4amber renum(`optional`, only if needed)  -> pdb2gmx/pdb4amber (generate topology and coordinates for MD simulation)
+pdb from Homology modeling/ Alphafold prediction ->  pdbfixer(fix missing atoms, remove heterogens and hydrogens) -> pdb-md select (select chains and residues) -> pdb-md termini-rm5p (remove 5' terminal phosphate group for nucleic acids) -> pdb4amber renum(`optional`, but 1recommended) -> protonation (add hydrogens) status determined, followed by pdb-md res-rename (rename residues to the force field's protonation-state names) -> pdb4amber renum(`optional`, only if needed)  -> pdb2gmx/pdb4amber (generate topology and coordinates for MD simulation)
