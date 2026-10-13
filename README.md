@@ -434,6 +434,10 @@ Amber-ff19SB + OL24/OL21 + OPC
 Amber-ff14SB + OL15/bsc1 + TIP3P 
 ```
 
+Also refer to https://ambermd.org/AmberModels.php
+
+![alt text](./figs/image5.png)
+
 > e.g. Considering the compatibility of ZAFF (built with tip3p water model) with the protein-nucleic acid force field, we recommend using the following force field combinations for Zinc finger protein-DNA complex: `Amber-ff14SB + bsc1 + TIP3P`
 
 ## 4️⃣ Topology and System Construction
