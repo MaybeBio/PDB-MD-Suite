@@ -13,6 +13,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional
 
 import re
 
@@ -22,6 +23,9 @@ _SECTION_RE = re.compile(r"^\s*\[\s*([A-Za-z_]+)\s*\]")
 _ATOM_ROW_RE = re.compile(r"^\s*\d")
 # section headers that terminate a moleculetype's parameter block
 _BLOCK_END_SECTIONS = frozenset({"moleculetype", "system", "molecules"})
+# the #ifdef that guards a restraint include (word boundary: not POSRES_FC etc.)
+_POSRES_IFDEF_RE = re.compile(r"^\s*#ifdef\s+POSRES\b")
+_ENDIF_RE = re.compile(r"^\s*#endif\b")
 
 
 @dataclass
@@ -32,9 +36,18 @@ class Moleculetype:
 
 
 @dataclass
+class RestraintResult:
+    name: str
+    status: str  # "added" | "skipped" | "replaced"
+    itp_file: Optional[Path] = None
+    n_heavy: int = 0
+    n_total: int = 0
+    original_block: list = field(default_factory=list)  # pre-existing #ifdef lines
+
+
+@dataclass
 class RestraintReport:
-    itp_files: list = field(default_factory=list)  # [Path]
-    restrained: list = field(default_factory=list)  # [(name, n_heavy, n_total)]
+    results: list = field(default_factory=list)  # [RestraintResult]
 
 
 def parse_moleculetypes(lines):
@@ -93,36 +106,72 @@ def _block_end(lines, mt):
     return len(lines)
 
 
-def inject_posres_blocks(lines, moleculetypes, selected):
-    """Return a copy of `lines` with a #ifdef POSRES block at the end of each selected block."""
+def existing_posres_block(lines, mt):
+    """(start, stop) inclusive line range of this moleculetype's #ifdef POSRES block.
+
+    Returns None when the moleculetype's own block carries no POSRES include.
+    """
+    end = _block_end(lines, mt)
+    for j in range(mt.header_line + 1, end):
+        if _POSRES_IFDEF_RE.match(lines[j]):
+            for k in range(j + 1, end):
+                if _ENDIF_RE.match(lines[k]):
+                    return (j, k)
+            return (j, end - 1)  # unterminated #ifdef: take to the block end
+    return None
+
+
+def _posres_block_lines(name):
+    return ["#ifdef POSRES", f'#include "posre_{name}.itp"', "#endif", ""]
+
+
+def inject_posres_blocks(lines, moleculetypes, selected, force=False):
+    """Return (new_lines, plan) for the selected moleculetypes.
+
+    plan is a list of (name, status, original_block_lines) in `selected` order,
+    where status is "added", "skipped" (already restrained, no --force) or
+    "replaced" (already restrained, --force). Unselected moleculetypes are never
+    touched, whether or not they carry a POSRES block.
+    """
     by_name = {mt.name: mt for mt in moleculetypes}
-    inserts = []
+    plan = []
+    operations = []  # (position, remove_count, name)
     for name in selected:
-        end = _block_end(lines, by_name[name])
-        block = ["#ifdef POSRES", f'#include "posre_{name}.itp"', "#endif", ""]
-        inserts.append((end, block))
+        mt = by_name[name]
+        rng = existing_posres_block(lines, mt)
+        if rng is None:
+            operations.append((_block_end(lines, mt), 0, name))
+            plan.append((name, "added", []))
+            continue
+        start, stop = rng
+        original = lines[start:stop + 1]
+        if not force:
+            plan.append((name, "skipped", original))
+            continue
+        # replace: also eat one trailing blank line so repeated --force is stable
+        remove_stop = stop
+        if remove_stop + 1 < len(lines) and lines[remove_stop + 1].strip() == "":
+            remove_stop += 1
+        operations.append((start, remove_stop - start + 1, name))
+        plan.append((name, "replaced", original))
 
     out = list(lines)
-    # insert bottom-up so earlier indices stay valid
-    for pos, block in sorted(inserts, key=lambda item: -item[0]):
-        out[pos:pos] = block
-    return out
+    # apply bottom-up so earlier line indices stay valid
+    for pos, remove, name in sorted(operations, key=lambda op: -op[0]):
+        out[pos:pos + remove] = _posres_block_lines(name)
+    return out, plan
 
 
 def restrain_topology(input_path, names, fc, output_path, force=False):
     """Write posre_<name>.itp per selected moleculetype and a patched topology copy.
 
-    The input topology is never modified. Returns a RestraintReport.
+    Selected moleculetypes that already carry a #ifdef POSRES block are skipped
+    unless force=True, in which case the existing block is replaced. The input
+    topology is never modified. Returns a RestraintReport.
     """
     input_path = Path(input_path)
     output_path = Path(output_path)
     lines = input_path.read_text().splitlines()
-
-    if not force and any("#ifdef POSRES" in ln for ln in lines):
-        raise ValueError(
-            "input topology already contains a #ifdef POSRES block; "
-            "pass force=True to add another set"
-        )
 
     mts = parse_moleculetypes(lines)
     if not mts:
@@ -135,19 +184,29 @@ def restrain_topology(input_path, names, fc, output_path, force=False):
                 f"moleculetype {name!r} not found; available: {', '.join(known)}"
             )
 
-    patched = inject_posres_blocks(lines, mts, names)
+    patched, plan = inject_posres_blocks(lines, mts, names, force=force)
 
     by_name = {mt.name: mt for mt in mts}
     outdir = output_path.parent
-    itp_files = []
-    restrained = []
-    for name in names:
+    results = []
+    for name, status, original in plan:
+        if status == "skipped":
+            results.append(RestraintResult(name=name, status=status, original_block=original))
+            continue
         atoms = by_name[name].atoms
         heavy = select_heavy_atoms(atoms)
         itp = outdir / f"posre_{name}.itp"
         itp.write_text(render_posre(heavy, fc))
-        itp_files.append(itp)
-        restrained.append((name, len(heavy), len(atoms)))
+        results.append(
+            RestraintResult(
+                name=name,
+                status=status,
+                itp_file=itp,
+                n_heavy=len(heavy),
+                n_total=len(atoms),
+                original_block=original,
+            )
+        )
 
     output_path.write_text("\n".join(patched) + "\n")
-    return RestraintReport(itp_files=itp_files, restrained=restrained)
+    return RestraintReport(results=results)

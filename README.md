@@ -821,7 +821,7 @@ Generate heavy-atom position-restraint `.itp` files for the given moleculetypes 
 ```bash
 ❯ pdb-md restrain --help
                                                                                                                                                     
- Usage: pdb-md restrain [OPTIONS]                                                                                                     
+ Usage: pdb-md restrain [OPTIONS]                                                                                                                   
                                                                                                                                                     
  Generate heavy-atom position-restraint .itp files for the given moleculetypes and write a patched copy of the topology that includes them.         
                                                                                                                                                     
@@ -836,7 +836,7 @@ Generate heavy-atom position-restraint `.itp` files for the given moleculetypes 
 │                                     [required]                                                                                                   │
 │    --fc            -F      <float>  Position-restraint force constant in kJ mol^-1 nm^-2. [default: 1000.0]                                      │
 │    --output        -O      <path>   Output topology, defaults to <input stem>_posres.top in the current working directory                        │
-│    --force                          Allow writing when the input topology already contains a #ifdef POSRES block.                                │
+│    --force                          Replace the existing #ifdef POSRES block of a selected moleculetype instead of skipping it.                  │
 │    --help                           Show this message and exit.                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
@@ -854,19 +854,38 @@ the log shows:
 
 ```bash
 Wrote posre_system1.itp
-Wrote posre_system2.itp
-Wrote posre_system3.itp
   system1: 595/908 heavy atoms restrained
+Wrote posre_system2.itp
   system2: 547/866 heavy atoms restrained
+Wrote posre_system3.itp
   system3: 2496/4864 heavy atoms restrained
 Wrote znf263_hs7.top
+```
+
+If a selected moleculetype already carries an `#ifdef POSRES` block (e.g. re-running on a topology the command produced earlier), that moleculetype is reported and skipped unless `--force` is given, which replaces the old block instead:
+
+```bash
+$ pdb-md restrain -I znf263_hs7.top -M system1 -M system2 -M system3 -O znf263_hs7_v2.top
+WARNING: system1: already restrained; skipped (pass --force to replace the existing block)
+    #ifdef POSRES
+    #include "posre_system1.itp"
+    #endif
+WARNING: system2: already restrained; skipped (pass --force to replace the existing block)
+    #ifdef POSRES
+    #include "posre_system2.itp"
+    #endif
+WARNING: system3: already restrained; skipped (pass --force to replace the existing block)
+    #ifdef POSRES
+    #include "posre_system3.itp"
+    #endif
+Wrote znf263_hs7_v2.top
 ```
 
 > [!NOTE]
 > - `-M` is repeatable; one `posre_<name>.itp` is written per moleculetype, numbered from that moleculetype's own `[ atoms ]` section (local numbering 1…N).
 > - Only heavy atoms are restrained (atom names not starting with `H`); the force constant defaults to 1000 kJ mol⁻¹ nm⁻² and is set with `-F`.
 > - The input topology is never modified; the output defaults to `<input stem>_posres.top`, and the `.itp` files are written next to it so the relative `#include` resolves.
-> - If the input already contains a `#ifdef POSRES` block, the command refuses to run unless `--force` is given.
+> - Conflict handling is per moleculetype, not global: a selected moleculetype that already has an `#ifdef POSRES` block is skipped (with a warning showing the original block); `--force` replaces that block and rewrites its `.itp` instead. Unselected moleculetypes are never touched.
 
 ## 6️⃣ Start Simulation
 

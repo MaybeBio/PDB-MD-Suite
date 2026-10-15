@@ -306,7 +306,7 @@ def restrain_cmd(
     force: bool = typer.Option(
         False,
         "--force",
-        help="Allow writing when the input topology already contains a #ifdef POSRES block.",
+        help="Replace the existing #ifdef POSRES block of a selected moleculetype instead of skipping it.",
     ),
 ):
     """
@@ -331,10 +331,25 @@ def restrain_cmd(
         typer.echo(f"ERROR: {exc}", err=True)
         raise typer.Exit(code=1)
 
-    for itp in report.itp_files:
-        typer.echo(f"Wrote {itp}")
-    for name, n_heavy, n_total in report.restrained:
-        typer.echo(f"  {name}: {n_heavy}/{n_total} heavy atoms restrained")
+    for r in report.results:
+        if r.status == "skipped":
+            typer.echo(
+                f"WARNING: {r.name}: already restrained; skipped "
+                f"(pass --force to replace the existing block)",
+                err=True,
+            )
+            for ln in r.original_block:
+                typer.echo(f"    {ln}", err=True)
+            continue
+        if r.status == "replaced":
+            typer.echo(
+                f"WARNING: {r.name}: already restrained; replacing the existing block",
+                err=True,
+            )
+            for ln in r.original_block:
+                typer.echo(f"    {ln}", err=True)
+        typer.echo(f"Wrote {r.itp_file}")
+        typer.echo(f"  {r.name}: {r.n_heavy}/{r.n_total} heavy atoms restrained")
     typer.echo(f"Wrote {output_file}")
 
 
