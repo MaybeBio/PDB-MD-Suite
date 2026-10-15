@@ -7,13 +7,29 @@
 
 # Prerequisites
 
+> Always check for the official documentation of the MD simulation software you are using.
+
+|Tool| Description | Url |
+|--|--|--|
+|Amber|Homepage|https://ambermd.org/| 
+||Amber Tutorials| https://ambermd.org/tutorials/|
+||Amber Reference Manuals|https://ambermd.org/Manuals.php|
+|Gromacs|Homepage|https://www.gromacs.org/|
+||Online Manual|https://manual.gromacs.org/current/index.html|
+||User Guide|https://manual.gromacs.org/current/user-guide/index.html|
+||Official Tutorials|https://tutorials.gromacs.org/|
+||Source Code|https://gitlab.com/gromacs/gromacs <br> https://github.com/gromacs/gromacs|
+||Python API|https://manual.gromacs.org/current/gmxapi/index.html|
+||Justin Lemkul MD Tutorials|http://www.mdtutorials.com/gmx/|
+||Chinese MD Tutorials|https://jerkwin.github.io/9999/10/31/GROMACS%E4%B8%AD%E6%96%87%E6%95%99%E7%A8%8B/|
+
 > Always check for the forums of the MD simulation software you are using.
 
 |Tool| Description | Url |
 |--|--|--|
 |Amber| Amber Mailing List Archive |http://archive.ambermd.org/ <br><br> https://cse.google.com/cse?cx=partner-pub-9700140137778662:8927431201&ie=UTF-8&sa=Search&ref=lists.ambermd.org/ |
 |Gromacs|GROMACS community forums | https://gromacs.bioexcel.eu/ |
-|| 计算化学公社- 高水平计算化学、理论化学交流论坛[`CHINESE`]  | http://bbs.keinsci.com/forum.php |
+|| 计算化学公社- 高水平计算化学、理论化学交流论坛[`Chinese`]  | http://bbs.keinsci.com/forum.php |
 
 # Installation
 
@@ -699,7 +715,9 @@ tleap -f tleap_zaff.in
 
 No redirection is required. Running the above program will synchronously generate one `leap.log` log file, in which you can view the execution results of each step in the above script as well as some statistical data for the topology system.
 
-It is recommended to check the log after each run of the tleap program and record the following data:
+It is recommended to check the log after each run of the tleap program and record the following data.
+
+ e.g. 
 
 |Item	|Value|
 |--|--|
@@ -888,6 +906,18 @@ Wrote znf263_hs7_v2.top
 > - Conflict handling is per moleculetype, not global: a selected moleculetype that already has an `#ifdef POSRES` block is skipped (with a warning showing the original block); `--force` replaces that block and rewrites its `.itp` instead. Unselected moleculetypes are never touched.
 
 ## 6️⃣ Start Simulation
+
+### Amber
+
+对于amber体系，我们通常使用Amber的pmemd进行模拟。Amber的模拟流程包括能量最小化、加热、平衡和生产阶段。每个阶段都需要相应的输入文件（.mdin）和参数设置。
+
+此处不再赘述Amber的模拟流程，用户可参考Amber官方文档和教程进行操作。
+
+另外可以参考一些第三方的模拟项目脚本，例如 https://github.com/HFChenLab/MD-analysis-scripts
+
+
+
+### Gromacs
 
 A typical simulation
 
