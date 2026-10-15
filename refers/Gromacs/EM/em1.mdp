@@ -1,0 +1,42 @@
+; ============================================================
+; em1.mdp — Stage 1: steepest-descent minimization (LOOSE)
+;
+; Why a separate loose stage first: leap.log flagged real defects in the
+; starting structure (protein–DNA close contacts ~0.5 Å, Zn–ligand bonds up
+; to 3.39 Å). Steepest descent is unconditionally downhill (the energy can
+; only decrease), so it cannot blow up even from those huge overlap forces.
+; emtol=1000 is deliberately loose: it stops as soon as the worst clashes
+; are gone. em2.mdp (conjugate gradient) then converges tightly to 10.
+; ============================================================
+
+title           = ZNF263-HS7 EM stage 1 (steep, loose)
+
+; Water is rigid (TIP3P [ settles ]) by default. During EM we make it
+; FLEXIBLE (explicit OH/HH bonds) so the CG stage cannot abort on a SETTLE
+; failure. NVT/NPT/MD run WITHOUT this define -> water returns to rigid.
+define          = -DFLEXIBLE
+
+integrator      = steep
+emtol           = 1000.0
+emstep          = 0.01
+nsteps          = 50000
+
+; No `constraints` line on purpose: EM runs with constraints = none (the
+; default), so EVERY bond relaxes — including H-bonds (which are constrained
+; in the later MD stages) and the ZAFF Zn–S / Zn–N bonds.
+
+cutoff-scheme   = Verlet
+nstlist         = 1            ; ignored during EM (pair list rebuilt as atoms move)
+rlist           = 1.2
+coulombtype     = PME
+rcoulomb        = 1.2
+fourierspacing  = 0.12
+pme-order       = 4
+vdwtype         = cutoff
+vdw-modifier    = force-switch
+rvdw-switch     = 1.0
+rvdw            = 1.2
+
+pbc             = xyz
+DispCorr        = no
+

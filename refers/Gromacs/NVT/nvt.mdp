@@ -1,0 +1,48 @@
+; ============================================================
+; nvt.mdp — Stage 3: NVT equilibration (200 ps, 310 K)
+; Solute heavy atoms position-restrained (define=-DPOSRES + -r ref).
+; Velocities generated fresh (continuation=no). No pressure coupling.
+; ============================================================
+
+title           = ZNF263-HS7 NVT equilibration (200 ps)
+define          = -DPOSRES
+
+integrator      = md
+nsteps          = 100000       ; 200 ps at 2 fs
+dt              = 0.002
+
+nstxout-compressed = 500      ; frame every 1 ps (200 frames; catch early instability)
+nstlog          = 500
+nstenergy       = 500
+    
+continuation    = no
+constraint_algorithm = lincs
+constraints     = h-bonds
+lincs_iter      = 1
+lincs_order     = 4
+
+cutoff-scheme   = Verlet
+nstlist         = 20
+rlist           = 1.2
+vdwtype         = cutoff
+vdw-modifier    = force-switch
+rvdw-switch     = 1.0
+rvdw            = 1.2
+coulombtype     = PME
+rcoulomb        = 1.2
+fourierspacing  = 0.12
+pme-order       = 4
+
+tcoupl          = V-rescale
+tc-grps         = System
+tau_t           = 1.0
+ref_t           = 310
+
+pcoupl          = no
+pbc             = xyz
+DispCorr        = no
+
+gen_vel         = yes
+gen_temp        = 310
+gen_seed        = -1
+

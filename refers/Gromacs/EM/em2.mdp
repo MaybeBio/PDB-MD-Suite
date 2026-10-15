@@ -1,0 +1,42 @@
+; ============================================================
+; em2.mdp — Stage 2: conjugate-gradient minimization (TIGHT)
+;
+; CG is efficient near a minimum (it converges faster than steep once the
+; forces are already small and smooth), which is why it runs SECOND, from
+; the em1 output. It is less robust than steep when started from a wildly
+; distorted geometry, hence the steep-first safety net in em1.mdp.
+; emtol=10 (kJ/mol/nm) is the GROMACS default and the accepted "converged"
+; criterion for MD preparation (the max force anywhere drops below 10).
+; ============================================================
+
+title           = ZNF263-HS7 EM stage 2 (cg, tight)
+
+; FLEXIBLE water: removes the [ settles ] (SETTLE) constraint that made the
+; previous CG run crash with "Minimizer 'cg' can not handle constraint
+; failures". Flexible water has no constraint to fail during minimization.
+define          = -DFLEXIBLE
+
+integrator      = cg
+emtol           = 10.0
+emstep          = 0.01
+nsteps          = 50000
+
+; nstcgsteep is left at its default (1000): every 1000 CG steps one steepest-
+; descent step is interleaved, which keeps CG from stalling on flat regions.
+; No `constraints` line: same as em1, all bonds relax freely.
+
+cutoff-scheme   = Verlet
+nstlist         = 1            ; ignored during EM
+rlist           = 1.2
+coulombtype     = PME
+rcoulomb        = 1.2
+fourierspacing  = 0.12
+pme-order       = 4
+vdwtype         = cutoff
+vdw-modifier    = force-switch
+rvdw-switch     = 1.0
+rvdw            = 1.2
+
+pbc             = xyz
+DispCorr        = no
+

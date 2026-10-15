@@ -1,0 +1,52 @@
+; ============================================================
+; npt.mdp — Stage 4: NPT equilibration (200 ps, 310 K, 1 bar)
+; Still position-restrained. Restart from NVT (continuation=yes, -t nvt.cpt).
+; Barostat: C-rescale (correct NPT ensemble AND robust — official mdp.md:
+; "can be used for both equilibration and production"; matches Lemkul).
+; Production MD will switch to Parrinello-Rahman (tau_p=5.0).
+; ============================================================
+
+title           = ZNF263-HS7 NPT equilibration (200 ps)
+define          = -DPOSRES
+
+integrator      = md
+nsteps          = 100000       ; 200 ps at 2 fs
+dt              = 0.002
+
+nstxout-compressed = 500      ; frame every 1 ps (200 frames; catch instability + density)
+nstlog          = 500
+nstenergy       = 500
+
+continuation    = yes
+constraint_algorithm = lincs
+constraints     = h-bonds
+lincs_iter      = 1
+lincs_order     = 4
+
+cutoff-scheme   = Verlet
+nstlist         = 20
+rlist           = 1.2
+vdwtype         = cutoff
+vdw-modifier    = force-switch
+rvdw-switch     = 1.0
+rvdw            = 1.2
+coulombtype     = PME
+rcoulomb        = 1.2
+fourierspacing  = 0.12
+pme-order       = 4
+
+tcoupl          = V-rescale
+tc-grps         = System
+tau_t           = 1.0
+ref_t           = 310
+
+pcoupl          = C-rescale
+pcoupltype      = isotropic
+tau_p           = 5.0
+ref_p           = 1.0
+compressibility = 4.5e-5
+refcoord_scaling = com       ; scale restraint reference COM with the box
+
+pbc             = xyz
+DispCorr        = no
+
