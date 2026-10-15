@@ -797,7 +797,17 @@ Here, we can visualize the converted GROMACS topology file using VMD or PyMOL to
 ![alt text](./figs/image4.png)
 
 
-### Fixing 
+### Fixing Gromacs topology file after conversion
+
+Sometimes, after converting the Amber topology file(.prmtop, .inpcrd) to Gromacs format(.top, .gro), there may be some issues with the converted Gromacs topology file. For example, if you use parmed to convert the Amber topology file to Gromacs format, you may find that the converted Gromacs topology file is missing position restraints for the protein and DNA, which may cause problems in the subsequent simulation. In this case, you can manually add the position restraints to the Gromacs topology file.
+
+In general, this can be resolved in three ways:
+
+1. **Avoid the conversion.** Run the equilibration and production stages in AmberTools/Amber with `sander` or `pmemd` directly from the `.prmtop`/`.inpcrd`, where the restraints are handled by AMBER's own restraint-weight mechanism; the conversion step is then avoided entirely.
+
+2. **Add the restraints manually, using the standard GROMACS tools.** Starting from the `.gro` and `.top` produced by ParmEd, and for a single-component solute or a system simple enough that the solute can be isolated as one group, you can generate the index file with `gmx make_ndx`, write the position-restraint file `posre.itp` with `gmx genrestr`, include that `.itp` from the solute `.top`, and then include the solute topology into the master topology. In the master topology an `#ifdef POSRES` block is added at the end of each `[moleculetype]` so that the restraints are activated. These restraints are used only in the subsequent NVT/NPT equilibration stages.
+
+3. **Generate the restraints per moleculetype from the topology itself.** The two GROMACS tools above do not generalize to multi-moleculetype systems: `gmx genrestr` numbers atoms by their global index in the coordinate file and, as the GROMACS documentation states, produces a useful file only for the first molecule. Because `[position_restraints]` indices refer to atoms within a moleculetype (local numbering 1…N) and not to global indices in the coordinate file, the restraint files must instead be generated directly from each `[atoms]` section, one file per moleculetype. So in this case, you can use the `pdb-md restrain` command to generate the position restraint files for each moleculetype in the Gromacs topology file.
 
 ## 6️⃣ Start Simulation
 
