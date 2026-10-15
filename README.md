@@ -61,13 +61,18 @@ pip install pdb-md
 - Homology modeling: When performing homology modeling for proteins, the template may contain complex information (for example, when searching for homologous templates of CTCF, we may find existing crystal structures of homologous proteins bound to DNA sequences). In such cases, homology modeling tools can be directly used for complex modeling.
 - Complex structure prediction: Use SOTA complex structure prediction tools such as alphafold3.
 
-One issue to note: unreasonable parts in the obtained structure can generally be corrected in the subsequent simulated energy minimization stage.
+One issue to note: unreasonable parts in the obtained structure can generally be corrected in the subsequent simulated energy minimization stage in most cases.
 
 |Description|Url|
 |--|--|
 |Homology Modeling|https://strbio.github.io/homology.html  <br> https://strbio.github.io/advanced.html|
 |Modeling Resources|https://strbio.github.io/links.html|
 
+> However, `Given the inherent sampling limitations of standard molecular dynamics simulations and their pronounced dependence on initial configurations, what fundamental insights or predictive value can be reliably derived from such localized trajectories?`
+>
+> `How can we ensure the scientific rigor of structural interpretations derived from limited sampling, and prevent molecular simulations from merely becoming post hoc rationalizations of predetermined initial structures?`
+>
+> If you are puzzled by these questions, and specifically on meaning of `Initial Structure and Sampling in Molecular Dynamics`, you can refer to [meaning of MD](./refers/meaning_of_md.md)
 
 ## 1️⃣ select
 
@@ -790,6 +795,9 @@ amber.save('znf263_hs7_solv_gmx.gro')
 Here, we can visualize the converted GROMACS topology file using VMD or PyMOL to check whether the structure is correct (directly load .gro file in pymol). 
 
 ![alt text](./figs/image4.png)
+
+
+### Fixing 
 
 ## 6️⃣ Start Simulation
 
