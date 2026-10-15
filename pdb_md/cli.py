@@ -11,6 +11,7 @@ from .SingleChainSelector import SingleChainSelector
 from .rename import MAX_RESNAME_LEN, rename_residues, save_pdb_keeping_columns
 from .termini import strip_5_phosphate
 from .neighbor import find_neighbors, atom_identity
+from .restrain import restrain_topology
 
 app = typer.Typer(help="Pre- and post-processing toolkit for PDB/MMCIF structure files in molecular dynamics workflows.", no_args_is_help=True)
 
@@ -279,6 +280,62 @@ def neighbor_cmd(
         a = atom_identity(atom)
         typer.echo(f"{a[0]}\t{a[1]}\t{a[2]}\t{a[3]}\t{a[4]}\t{a[5]}\t{dist:.3f}")
     typer.echo(f"# {len(neighbors)} atoms within {distance} A")
+
+
+@app.command("restrain", no_args_is_help=True)
+def restrain_cmd(
+    input_file: Path = typer.Option(..., "--input", "-I", help="Input GROMACS topology file (.top)"),
+    moleculetypes: list[str] = typer.Option(
+        ...,
+        "--moleculetype",
+        "-M",
+        help="Name of a [ moleculetype ] to restrain. Repeatable. One heavy-atom restraint file is written per moleculetype.",
+    ),
+    fc: float = typer.Option(
+        1000.0,
+        "--fc",
+        "-F",
+        help="Position-restraint force constant in kJ mol^-1 nm^-2.",
+    ),
+    output_file: Optional[Path] = typer.Option(
+        None,
+        "--output",
+        "-O",
+        help="Output topology, defaults to <input stem>_posres.top in the current working directory",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Allow writing when the input topology already contains a #ifdef POSRES block.",
+    ),
+):
+    """
+    Generate heavy-atom position-restraint .itp files for the given moleculetypes
+    and write a patched copy of the topology that includes them.
+
+    This fills the gap left by an AMBER-to-GROMACS conversion (e.g. ParmEd): the
+    converted topology has no posre file and no #ifdef POSRES block, so
+    'define = -DPOSRES' in the NVT/NPT .mdp files would be a silent no-op.
+    """
+
+    if not input_file.exists():
+        typer.echo(f"ERROR: input file {input_file} does not exist.", err=True)
+        raise typer.Exit(code=1)
+
+    if not output_file:
+        output_file = Path(input_file.stem + "_posres.top")
+
+    try:
+        report = restrain_topology(input_file, moleculetypes, fc, output_file, force=force)
+    except ValueError as exc:
+        typer.echo(f"ERROR: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    for itp in report.itp_files:
+        typer.echo(f"Wrote {itp}")
+    for name, n_heavy, n_total in report.restrained:
+        typer.echo(f"  {name}: {n_heavy}/{n_total} heavy atoms restrained")
+    typer.echo(f"Wrote {output_file}")
 
 
 if __name__ == "__main__":

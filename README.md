@@ -40,6 +40,9 @@ pip install pdb-md
 │ termini-rm5p  Remove terminal phosphate groups from nucleic acids, e.g. 5' phosphate group from DNA/RNA.                                         │
 │ res-rename    Rename residues of specified chains and residue numbers, e.g. to the residue names a                                               │
 │               force field expects for a given protonation state (HIS -> HIE/HID/HIP, CYS -> CYM).                                                │
+│ neighbor      Find all atoms within a distance of a given atom (identified by its serial number).                                                │
+│ restrain      Generate heavy-atom position-restraint .itp files for the given moleculetypes                                                      │
+│               and write a patched copy of the topology that includes them.                                                                       │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
                                                                
@@ -799,7 +802,9 @@ Here, we can visualize the converted GROMACS topology file using VMD or PyMOL to
 
 ### Fixing Gromacs topology file after conversion
 
-Sometimes, after converting the Amber topology file(.prmtop, .inpcrd) to Gromacs format(.top, .gro), there may be some issues with the converted Gromacs topology file. For example, if you use parmed to convert the Amber topology file to Gromacs format, you may find that the converted Gromacs topology file is missing position restraints for the protein and DNA, which may cause problems in the subsequent simulation. In this case, you can manually add the position restraints to the Gromacs topology file.
+Sometimes, after converting the Amber topology file(.prmtop, .inpcrd) to Gromacs format(.top, .gro), there may be some issues with the converted Gromacs topology file. For example, if you use parmed to convert the Amber topology file to Gromacs format, you may find that the converted Gromacs topology file is missing position restraints for the protein and DNA, which may cause problems in the subsequent simulation. E.g., see https://gromacs.bioexcel.eu/t/position-restraints-and-mdp-setup-after-an-ambertools-zaff-parmed-gromacs-handover/13768
+
+In this case, you can manually add the position restraints to the Gromacs topology file.
 
 In general, this can be resolved in three ways:
 
@@ -808,6 +813,60 @@ In general, this can be resolved in three ways:
 2. **Add the restraints manually, using the standard GROMACS tools.** Starting from the `.gro` and `.top` produced by ParmEd, and for a single-component solute or a system simple enough that the solute can be isolated as one group, you can generate the index file with `gmx make_ndx`, write the position-restraint file `posre.itp` with `gmx genrestr`, include that `.itp` from the solute `.top`, and then include the solute topology into the master topology. In the master topology an `#ifdef POSRES` block is added at the end of each `[moleculetype]` so that the restraints are activated. These restraints are used only in the subsequent NVT/NPT equilibration stages.
 
 3. **Generate the restraints per moleculetype from the topology itself.** The two GROMACS tools above do not generalize to multi-moleculetype systems: `gmx genrestr` numbers atoms by their global index in the coordinate file and, as the GROMACS documentation states, produces a useful file only for the first molecule. Because `[position_restraints]` indices refer to atoms within a moleculetype (local numbering 1…N) and not to global indices in the coordinate file, the restraint files must instead be generated directly from each `[atoms]` section, one file per moleculetype. So in this case, you can use the `pdb-md restrain` command to generate the position restraint files for each moleculetype in the Gromacs topology file.
+
+#### `pdb-md restrain`
+
+Generate heavy-atom position-restraint `.itp` files for the given moleculetypes and write a patched copy of the topology that includes them. This fills the gap left by an AMBER-to-GROMACS conversion (e.g. ParmEd): the converted topology has no posre file and no `#ifdef POSRES` block, so `define = -DPOSRES` in the NVT/NPT `.mdp` files would be a silent no-op.
+
+```bash
+❯ pdb-md restrain --help
+                                                                                                                                                    
+ Usage: pdb-md restrain [OPTIONS]                                                                                                     
+                                                                                                                                                    
+ Generate heavy-atom position-restraint .itp files for the given moleculetypes and write a patched copy of the topology that includes them.         
+                                                                                                                                                    
+ This fills the gap left by an AMBER-to-GROMACS conversion (e.g. ParmEd): the                                                                       
+ converted topology has no posre file and no #ifdef POSRES block, so                                                                                
+ 'define = -DPOSRES' in the NVT/NPT .mdp files would be a silent no-op.                                                                             
+                                                                                                                                                    
+╭─ Options ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ *  --input         -I      <path>   Input GROMACS topology file (.top) [required]                                                                │
+│ *  --moleculetype  -M      <str>    Name of a [ moleculetype ] to restrain. Repeatable. One heavy-atom restraint file is written per             │
+│                                     moleculetype.                                                                                                │
+│                                     [required]                                                                                                   │
+│    --fc            -F      <float>  Position-restraint force constant in kJ mol^-1 nm^-2. [default: 1000.0]                                      │
+│    --output        -O      <path>   Output topology, defaults to <input stem>_posres.top in the current working directory                        │
+│    --force                          Allow writing when the input topology already contains a #ifdef POSRES block.                                │
+│    --help                           Show this message and exit.                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+```
+
+example:
+
+```bash
+pdb-md restrain \
+    -I znf263_hs7_solv_gmx.top \
+    -M system1 -M system2 -M system3 \
+    -O znf263_hs7.top
+```
+
+the log shows:
+
+```bash
+Wrote posre_system1.itp
+Wrote posre_system2.itp
+Wrote posre_system3.itp
+  system1: 595/908 heavy atoms restrained
+  system2: 547/866 heavy atoms restrained
+  system3: 2496/4864 heavy atoms restrained
+Wrote znf263_hs7.top
+```
+
+> [!NOTE]
+> - `-M` is repeatable; one `posre_<name>.itp` is written per moleculetype, numbered from that moleculetype's own `[ atoms ]` section (local numbering 1…N).
+> - Only heavy atoms are restrained (atom names not starting with `H`); the force constant defaults to 1000 kJ mol⁻¹ nm⁻² and is set with `-F`.
+> - The input topology is never modified; the output defaults to `<input stem>_posres.top`, and the `.itp` files are written next to it so the relative `#include` resolves.
+> - If the input already contains a `#ifdef POSRES` block, the command refuses to run unless `--force` is given.
 
 ## 6️⃣ Start Simulation
 
