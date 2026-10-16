@@ -1021,6 +1021,8 @@ After NPT is completed, it is suggested to check the pressure change with `gmx e
 
 So, when the system has been equilibrated, we can start the production simulation. The general `md.mdp` file can be referenced at http://www.mdtutorials.com/gmx/complex/Files/md.mdp, also copied as [lemkul_complex_md.mdp](./refers/Gromacs/MD/lemkul_complex_md.mdp)
 
+> Here we take 200 ns as an example. The simulation time can be adjusted according to the research needs. The longer the simulation time, the more accurate the results, but the higher the computational cost.
+
 ```bash
 # md.mdp in ./refers/Gromacs/MD/md.mdp
 gmx grompp -f md.mdp -c $NPT.gro -t $NPT.cpt -p $TOP -o $MD.tpr -maxwarn 1
@@ -1045,7 +1047,18 @@ done
 
 ## 7️⃣ PBC correction 
 
+After the production simulation is completed, we can perform PBC correction on the trajectory file. 
 
+> In Molecular Dynamics (MD) simulations, `Periodic Boundary Conditions (PBC)` are introduced to simulate an infinite macroscopic system. As a result, when a molecule crosses a boundary, it gets "cut off" or "teleported" to the opposite side. This is why almost all raw simulation trajectories inherently suffer from PBC issues.
+>
+> For details, please refer to the GROMACS manual: https://manual.gromacs.org/2026.1/reference-manual/algorithms/periodic-boundary-conditions.html
+
+
+
+
+The general `trjconv` command can be referenced at http://www.mdtutorials.com/gmx/complex/Files/trjconv.md
+
+```bash
 
 
 ## 8️⃣ Post-Analysis
