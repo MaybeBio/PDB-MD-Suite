@@ -907,27 +907,127 @@ Wrote znf263_hs7_v2.top
 
 ## 6️⃣ Start Simulation
 
-### Amber
+For the amber system, we typically use Amber's pmemd for simulations. The Amber simulation workflow includes energy minimization, heating, equilibration and production phases. Each phase requires corresponding input files (.mdin) and parameter settings.
 
-对于amber体系，我们通常使用Amber的pmemd进行模拟。Amber的模拟流程包括能量最小化、加热、平衡和生产阶段。每个阶段都需要相应的输入文件（.mdin）和参数设置。
+The Amber simulation workflow will not be elaborated here. Users can refer to the official Amber documentation and tutorials for operations, which have been listed before.
 
-此处不再赘述Amber的模拟流程，用户可参考Amber官方文档和教程进行操作。
+You may also refer to some third-party simulation project scripts, such as https://github.com/HFChenLab/MD-analysis-scripts
 
-另外可以参考一些第三方的模拟项目脚本，例如 https://github.com/HFChenLab/MD-analysis-scripts
+> Below, we focus on the `GROMACS simulation workflow`, a widely adopted pipeline in molecular dynamics simulations.
 
-
-
-### Gromacs
-
-A typical simulation
-
-Similarly, we can adopt the amber system and perform simulations with the amber dynamics engine,
-or adopt the gromacs system and carry out simulations using the gromacs dynamics engine.
-
-Following point 4️⃣ above, we uniformly use the gromacs simulation engine here to simulate the topological system constructed by amber ZAFF.
+The material below is primarily adapted from Lemkul’s GROMACS tutorial, available at [http://www.mdtutorials.com/gmx/](http://www.mdtutorials.com/gmx/)
 
 
-## final
+### Pre-simulation 
+
+.mdp files are the parameter files for GROMACS simulations. You can check the [official GROMACS documentation](https://manual.gromacs.org/current/user-guide/mdp-options.html) for details on the parameters in the .mdp files.
+
+
+#### Energy minimization, EM
+
+> gmx grompp + gmx mdrun
+>
+> The general `em.mdp` file can be referenced at http://www.mdtutorials.com/gmx/complex/Files/em.mdp, also copied as [lemkul_complex_em.mdp](./refers/Gromacs/EM/lemkul_complex_em.mdp)
+>
+> `emtol = 1000.0 kJ/mol/nm (steepest descent)` is a relatively loose convergence criterion, which is sufficient for most systems. If you want to achieve a more precise energy minimization, you can set `emtol = 10.0 kJ/mol/nm (conjugate gradient)` or even lower.
+
+It is recommended to perform `two-stage` em mdrun. Use `steepest descent` for the first stage and `conjugate gradient` for the second stage. The first stage can quickly eliminate most unreasonable interatomic distances, and the second stage can optimize the structure more precisely.
+
+```bash
+# step1: steep descent
+# em1.mdp in ./refers/Gromacs/EM/em1.mdp
+gmx grompp -f em1.mdp -c $GRO -p $TOP -o $EM1.tpr -maxwarn 1
+gmx mdrun -deffnm $EM1 -v -ntmpi 1 -ntomp 16 -nb gpu -gpu_id 0
+
+# step2: conjugate gradient
+# em2.mdp in ./refers/Gromacs/EM/em2.mdp
+gmx grompp -f em2.mdp -c $EM1.gro -p $TOP -o $EM2.tpr -maxwarn 1
+gmx mdrun -deffnm $EM2 -v -ntmpi 1 -ntomp 16 -nb gpu -gpu_id 0
+```
+
+After em is completed, it is suggested to check the energy change with `gmx energy` and verify whether the em potential has converged.
+
+#### NVT equilibration, NVT
+
+> gmx grompp + gmx mdrun
+>
+> The general `nvt.mdp` file can be referenced at http://www.mdtutorials.com/gmx/complex/Files/nvt.mdp, also copied as [lemkul_complex_nvt.mdp](./refers/Gromacs/NVT/lemkul_complex_nvt.mdp)
+>
+> `310 K` is roughly equal to 37 °C, which is the normal human body temperature. 
+>
+> .itp files (fixed above) for position restraints are included in the topology file, and the `define = -DPOSRES` option is set in the .mdp file to enable the position restraints during NVT simulation.
+
+```bash
+# nvt.mdp in ./refers/Gromacs/NVT/nvt.mdp
+gmx grompp -f nvt.mdp -c $EM2.gro -r $EM2.gro -p $TOP -o $NVT.tpr -maxwarn 1
+gmx mdrun -deffnm $NVT -v -ntmpi 1 -ntomp 16 -nb gpu -gpu_id 0
+
+```
+
+If you want to perform parallel simulation:
+
+```bash
+# 3 replicas NVT simulation at least
+# 3 different random seeds are used to generate 3 different initial velocities for the same system
+sed 's/gen_seed *= *-1/gen_seed = ${SEED1}/' nvt.mdp > nvt_r1.mdp                                                                                          
+sed 's/gen_seed *= *-1/gen_seed = ${SEED2}/' nvt.mdp > nvt_r2.mdp                                                                                          
+sed 's/gen_seed *= *-1/gen_seed = ${SEED3}/' nvt.mdp > nvt_r3.mdp                                                                                          
+
+for r in r1 r2 r3; do                                                                                                                                   
+    gmx grompp -f nvt_${r}.mdp -c $EM2.gro -r $EM2.gro -p $TOP -o ${NVT_PREFIX}_${r}.tpr -maxwarn 1                                                                
+    gmx mdrun -deffnm ${NVT_PREFIX}_${r} -ntmpi 1 -ntomp 16 -nb gpu -gpu_id 0 -v                                                                                    
+done  
+```
+
+After NVT is completed, it is suggested to check the temperature change with `gmx energy` and verify whether the system temperature has converged to the target temperature.
+
+#### NPT equilibration, NPT
+
+> gmx grompp + gmx mdrun
+>
+> The general `npt.mdp` file can be referenced at http://www.mdtutorials.com/gmx/complex/Files/npt.mdp, also copied as [lemkul_complex_npt.mdp](./refers/Gromacs/NPT/lemkul_complex_npt.mdp)
+>
+> `1.0 bar` is roughly equal to 1 atm, which is the normal atmospheric pressure at sea level. Set 1.0bar & 310K generally.
+
+```bash
+# npt.mdp in ./refers/Gromacs/NPT/npt.mdp
+gmx grompp -f npt.mdp -c $NVT.gro -r $NVT.gro -p $TOP -o $NPT.tpr -maxwarn 1
+gmx mdrun -deffnm $NPT -v -ntmpi 1 -ntomp 16 -nb gpu -gpu_id 0
+``` 
+
+You may also run NPT simulations in parallel, analogous to the NVT stage.
+
+For parallel jobs, the NPT run typically continues from the distinct replicas generated in the preceding NVT simulation.
+
+```bash
+# 3 replicas NPT simulation (continuation=yes, inherit NVT velocities/state)
+# shared npt.mdp file for all replicas cause difference is only in the initial velocities/state from NVT simulation
+for r in r1 r2 r3; do
+    gmx grompp -f npt.mdp \
+        -c ${NVT_DIR}/${NVT_PREFIX}_${r}.gro \
+        -r ${NVT_DIR}/${NVT_PREFIX}_${r}.gro \
+        -t ${NVT_DIR}/${NVT_PREFIX}_${r}.cpt \
+        -p $TOP \
+        -o ${NPT_PREFIX}_${r}.tpr -maxwarn 1
+    gmx mdrun -deffnm ${NPT_PREFIX}_${r} -ntmpi 1 -ntomp 16 -nb gpu -gpu_id 0 -v
+done
+
+```
+
+After NPT is completed, it is suggested to check the pressure change with `gmx energy` and verify whether the system pressure has converged to the target pressure. You can also check the density change with `gmx energy` and verify whether the system density has converged to the target density (typically around 1.0 g/cm³ for water).
+
+
+### Production simulation, MD
+
+
+
+
+
+## 7️⃣ PBC correction 
+
+## 8️⃣ Post-Analysis
+
+## 9️⃣ Final
 
 ### A typical workflow for preparing a PDB file for MD simulation
 
