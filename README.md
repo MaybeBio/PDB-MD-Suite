@@ -1019,11 +1019,34 @@ After NPT is completed, it is suggested to check the pressure change with `gmx e
 
 ### Production simulation, MD
 
+So, when the system has been equilibrated, we can start the production simulation. The general `md.mdp` file can be referenced at http://www.mdtutorials.com/gmx/complex/Files/md.mdp, also copied as [lemkul_complex_md.mdp](./refers/Gromacs/MD/lemkul_complex_md.mdp)
 
+```bash
+# md.mdp in ./refers/Gromacs/MD/md.mdp
+gmx grompp -f md.mdp -c $NPT.gro -t $NPT.cpt -p $TOP -o $MD.tpr -maxwarn 1
+gmx mdrun -deffnm $MD -v -ntmpi 1 -ntomp 16 -nb gpu -pme gpu -bonded gpu -update gpu -gpu_id 0
+```
 
+For parallel jobs, the MD run typically continues from the distinct replicas generated in the preceding NPT simulation.
 
+```bash
+# Production MD: 3 replicas x 200 ns (310 K, 1 bar, no restraints).
+# All 3 fresh from scratch, each restarting from its own NPT checkpoint.
+for r in r1 r2 r3; do
+    gmx grompp -f md.mdp \
+        -c ${NPT_DIR}/znf263_hs7_npt_${r}.gro \
+        -t ${NPT_DIR}/znf263_hs7_npt_${r}.cpt \
+        -p $TOP \
+        -o ${PREFIX}_${r}.tpr -maxwarn 1
+    gmx mdrun -deffnm ${PREFIX}_${r} \
+        -ntmpi 1 -ntomp 16 -nb gpu -pme gpu -bonded gpu -update gpu -gpu_id 0 -v
+done
+```
 
 ## 7️⃣ PBC correction 
+
+
+
 
 ## 8️⃣ Post-Analysis
 
