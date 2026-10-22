@@ -80,12 +80,87 @@ pip install pdb-md
 - Homology modeling: When performing homology modeling for proteins, the template may contain complex information (for example, when searching for homologous templates of CTCF, we may find existing crystal structures of homologous proteins bound to DNA sequences). In such cases, homology modeling tools can be directly used for complex modeling.
 - Complex structure prediction: Use SOTA complex structure prediction tools such as alphafold3.
 
-One issue to note: unreasonable parts in the obtained structure can generally be corrected in the subsequent simulated energy minimization stage in most cases.
+
+**But in reality?**
+
+> In most cases or in most published papers, researchers prefer to use the `homology modeling` method to obtain the initial structure of the system, and then perform molecular dynamics simulations to refine the structure. This is because homology modeling can provide a relatively accurate initial structure, and molecular dynamics simulations can further optimize the structure and explore its dynamic behavior.
+>
+> So, why not alphafold3? 
+>
+> Homology modeling is generally preferred for `simulations of single-component or simple-complex systems` that demand high accuracy and reliability. By contrast, predictive tools such as AlphaFold3 are widely adopted for `batch prediction, complex multicomponent assemblies, high-throughput pattern exploration, or sampling for dataset augmentation`, prioritizing efficiency and coverage.
+
+### Homology Modeling
+
+Three steps of the homology modeling process (that is, `template searching, target-template sequence alignment and model building`)
+
+We will take [CTCF](https://www.uniprot.org/uniprotkb/P49711/entry) and [ZNF143](https://www.uniprot.org/uniprotkb/P52747/entry) as an example to illustrate the process of homology modeling, and provide some tools and resources for each step.
+
+You may directly search for the target protein structure in the PDB database; nevertheless, we recommend first examining the details under the **Structure** section of its UniProt entry(`entry#structure`). If experimental, predicted, or homology-modeled structures are available via the Structure link of this entry, the corresponding structural files can be downloaded directly as initial structures for simulations.
+
+> 1️⃣ entry#structure contains experimental structures: CTCF
+
+![alt text](./figs/image6.png)
+
+You may inspect these available experimental structures one by one to determine whether they match the structural requirements of your project.
+
+The target protein fragment for modeling can be extracted and saved as a new PDB file either via custom Python scripts (e.g., using Biopython) or the selection syntax in visualization programs including PyMOL and UCSF Chimera. For missing residues, the unresolved regions can be filled by homology modeling, structure prediction, or tools such as PDBfixer described below.
+
+> 2️⃣ entry#structure contains no experimental structures but typically includes homology models and predicted structures: ZNF143
+
+![alt text](./figs/image7.png)
+
+Links to homology models and predicted structures are often provided in the `entry#structure` section of the UniProt entry, such as the SMR (Swiss-Model Repository) and AFDB (AlphaFold Protein Structure Database) links shown above.
+
+Similarly, we recommend prioritizing homology models.
+
+Within the dedicated Swiss-Model entry page, multiple homology models are available. Each model is annotated with metrics including template origin, template resolution, sequence coverage, and model quality scores. These metrics can guide the selection of the homology model best suited for your study.
+
+The accompanying model report contains detailed information on model construction as well as template–target sequence alignments, which enable a preliminary assessment of the model quality.
+
+Notably, Swiss-Model mostly delivers homology models for monomeric proteins together with limited ligands or small molecules. For complex assembly modeling, it is worthwhile checking whether the original template PDB structure contains a similar complex. The PDB ID of this template should therefore be retained for follow-up use.
+
+> 3️⃣ entry#structure contains neither experimental nor homology-modeled structures but usually provides predicted structures
+
+We still recommend performing homology modeling first. Widely used homology modeling tools include [Swiss-Model](https://swissmodel.expasy.org/), [Modeller](https://salilab.org/modeller/), [I-TASSER](https://zhanglab.ccmb.med.umich.edu/I-TASSER/), and Rosetta.
+
+Swiss-Model is a web-based homology modeling server. Homology modeling can be initiated by submitting either the protein UniProt ID or the amino acid sequence on its webpage. The outputs are consistent with the homology model links shown in the `entry#structure` section of the corresponding UniProt entry, which also include template information, quantitative metrics and model reports.
+
+
+In brief, once the homology model of the target protein (plus partial ligands and small molecules) is ready, a further consideration emerges when building complex assemblies like DNA–protein complexes: how to add the DNA sequence?
+
+Common approaches are outlined below:
+* For known DNA sequences, tools including 3D-DART, 3DNA, Nucleic Acid Builder (NAB), VMD/AmberTools (NAB), and wDSSR can be used to generate three-dimensional DNA structures. The resulting DNA model is then docked to the homology-modeled protein structure via molecular docking programs such as AutoDock or HADDOCK to yield an initial complex structure.
+* If the homology modeling template already contains DNA, base mutation can be performed. When a homologous complex template is available, PyMOL (Mutagenesis tool), UCSF Chimera, or wDSSR ([https://web.x3dna-dssr.org/mutation](https://web.x3dna-dssr.org/mutation)) may be adopted. These tools preserve the DNA phosphate backbone while only mutating the bases into the target sequence. This strategy retains the intrinsic bent conformation (posture) of DNA at the binding site to the greatest extent. For longer target DNA sequences, the DNA can be extended on the basis of the mutated fragment, or a longer DNA sequence can be aligned to the existing subsequence in PyMOL. Tools such as wDSSR ([https://web.x3dna-dssr.org/fibermodel](https://web.x3dna-dssr.org/fibermodel)) and resources at [https://github.com/x3dna-dssr](https://github.com/x3dna-dssr) are available for building DNA with template-specified geometric parameters.
+
 
 |Description|Url|
 |--|--|
 |Homology Modeling|https://strbio.github.io/homology.html  <br> https://strbio.github.io/advanced.html|
 |Modeling Resources|https://strbio.github.io/links.html|
+|X3DNA-DSSR|https://github.com/x3dna-dssr|
+||https://web.x3dna-dssr.org/|
+||http://home.x3dna.org/|
+||http://forum.x3dna.org/|
+|MODELLER|https://salilab.org/modeller/|
+|I-TASSER|https://zhanggroup.org//I-TASSER/|
+|Rosetta Commons|https://rosettacommons.org/|
+
+
+### Prediction
+
+There are several tools and resources available for predicting molecular conformations and structures:
+
+Please refer to:
+
+* [awesome-AI4MolConformation-MD](https://github.com/AspirinCode/awesome-AI4MolConformation-MD)
+* [awesome-BioMolGenFold](https://github.com/AspirinCode/awesome-BioMolGenFold)
+* [Awesome-Protein-ContactMap-Prediction](https://github.com/MaybeBio/Awesome-Protein-ContactMap-Prediction)
+
+
+### Manual structural refinement
+
+Sometimes, initial structures from homology modeling or other pipelines cannot account for experimental results including ChIP-seq and other omics data, which necessitates `manual structural correction`. Selected fragments may be remodeled using homologous analogs as templates, e.g., adjusting the orientation of zinc finger 2 following the conformation of zinc finger 6 from another zinc-finger protein.
+
 
 > However, `Given the inherent sampling limitations of standard molecular dynamics simulations and their pronounced dependence on initial configurations, what fundamental insights or predictive value can be reliably derived from such localized trajectories?`
 >
