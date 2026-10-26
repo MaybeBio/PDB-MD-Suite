@@ -1122,19 +1122,75 @@ done
 
 ## 7️⃣ PBC correction 
 
-After the production simulation is completed, we can perform PBC correction on the trajectory file. 
+When the production simulation is completed, whether the system is equilibrated or not, we need to perform PBC correction on the trajectory file. Because the simulation system is set up with periodic boundary conditions, the trajectory file may contain artifacts where molecules appear to be split across the boundaries of the simulation box. This can lead to incorrect interpretations of molecular interactions and dynamics. What's more, we need to judge whether the system is equilibrated or not based on the trajectory file, and PBC artifacts can interfere with this analysis.
+
+So, `some short-time simulations have been done -> need to check whether the system is equilibrated or not -> need to analyze the corrected trajectory file -> need to perform PBC correction on the trajectory file`.
 
 > In Molecular Dynamics (MD) simulations, `Periodic Boundary Conditions (PBC)` are introduced to simulate an infinite macroscopic system. As a result, when a molecule crosses a boundary, it gets "cut off" or "teleported" to the opposite side. This is why almost all raw simulation trajectories inherently suffer from PBC issues.
 >
 > For details, please refer to the GROMACS manual: https://manual.gromacs.org/2026.1/reference-manual/algorithms/periodic-boundary-conditions.html
-
-
-
-
-The general `trjconv` command can be referenced at http://www.mdtutorials.com/gmx/complex/Files/trjconv.md
+> 
+> The general `trjconv` command can be referenced at http://www.mdtutorials.com/gmx/complex/Files/trjconv.md
+>
+> Suggested workflow for PBC correction: https://manual.gromacs.org/current/user-guide/terminology.html#suggested-workflow
 
 ```bash
+Fixing periodicity effects with gmx trjconv to suit visualization or analysis can be tricky. Multiple invocations can be necessary. You may need to create custom index groups (e.g. to keep your ligand with your protein) Following the steps below in order (omitting those not required) should help get a pleasant result. You will need to consult gmx trjconv -h to find out the details for each step. That is deliberate – there is no magic “do what I want” recipe. You have to decide what you want, first. :-)
 
+1. First make your molecules whole if you want them whole.
+
+2. Cluster your molecules/particles if you want them clustered.
+
+3. If you want jumps removed, extract the first frame from the trajectory to use as the reference, and then use -pbc nojump with that first frame as reference.
+
+4. Center your system using some criterion. Doing so shifts the system, so do not use -pbc nojump after this step.
+
+5. Perhaps put everything in some box with the other -pbc or -ur options.
+
+6. Fit the resulting trajectory to some (other) reference structure (if desired), and do not use any PBC related option afterwards.
+
+With point three, the issue is that gmx trjconv removes the jumps from the first frame using the reference structure provided with -s. If the reference structure (run input file) is not clustered/whole, using -pbc nojump will undo steps 1 and 2.
+```
+
+> Though there is no one-size-fits-all solution for PBC correction, the following workflow is recommended for our Protein-DNA complex system:
+
+```bash
+# make index file for trjconv
+# 3 groups: protein(contains Zn ligand)、DNA、complex (protein+DNA)
+gmx make_ndx -f $RUN.tpr -o $NDX
+
+# 1 whole
+# gmx -pbc whole
+# system (group 0) for output
+gmx trjconv -s $RUN.tpr -f $RUN.xtc -pbc whole -o ${RUN}_1whole.xtc
+
+
+# 2 cluster
+# gmx -pbc cluster
+# complex group for clustering, system (group 0) for output
+gmx trjconv -s $RUN.tpr -f ${RUN}_1whole.xtc -n $NDX -pbc cluster -o ${RUN}_2cluster.xtc
+
+# 3 whole
+# gmx -pbc whole
+# this time for ligand Zn
+# system (group 0) for output
+gmx trjconv -s $RUN.tpr -f ${RUN}_2cluster.xtc -pbc whole -o ${RUN}_3whole.xtc
+
+# 4 nojump
+# gmx -pbc nojump
+# reference = first frame of 3whole
+# system (group 0) for output
+gmx trjconv -s $RUN.tpr -f ${RUN}_3whole.xtc -dump 0 -o ${RUN}_frame0.gro
+gmx trjconv -s ${RUN}_frame0.gro -f ${RUN}_3whole.xtc -pbc nojump -o ${RUN}_4nojump.xtc
+
+# 5 center
+# gmx -center 
+# complex group for centering, system (group 0) for output
+gmx trjconv -s $RUN.tpr -f ${RUN}_4nojump.xtc -n $NDX -center -o ${RUN}_5center.xtc
+
+# Usually no further PBC correction is needed after this step, such as `-pbc mol -ur compact`
+# Always check the trajectory after each step (through VMD or extract some metrics like `ZN-ZF rmsd` from the trajectory) to ensure that the PBC correction is proceeding as expected. If any issues arise, you may need to adjust the parameters or steps accordingly.
+```
 
 ## 8️⃣ Post-Analysis
 
