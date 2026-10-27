@@ -15,6 +15,14 @@ def test_roundtrip_and_done_requires_artifacts(tmp_path):
     assert not st2.is_done("zaff", sha256_text("cfg"), [art])
     assert not st2.is_done("zaff", sha256_text("other"), [tmp_path / "a.txt"])
 
+def test_record_done_rejects_root_mismatch(tmp_path):
+    art = tmp_path / "a.txt"; art.write_text("x")
+    st = RunState(tmp_path / "state.json", "r")
+    other = tmp_path / "other"; other.mkdir()
+    with pytest.raises(PreflightError, match="root mismatch"):
+        st.record_done("zaff", [art], other)
+    assert st.get("zaff") is None
+
 def test_state_file_is_valid_json_after_failure(tmp_path):
     st = RunState(tmp_path / "state.json", "r")
     st.record_failed("em", "boom")

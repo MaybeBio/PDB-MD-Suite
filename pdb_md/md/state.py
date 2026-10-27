@@ -159,6 +159,10 @@ class RunState:
         tool_versions: Optional[dict] = None,
     ):
         self.path = Path(path)
+        # The run root is invariant: state.json lives in it.  Deriving it once
+        # here keeps record_done (relativisation) and is_done (existence
+        # checks) from silently disagreeing about where artifacts live.
+        self._root = self.path.parent
         self.run_name = run_name
         self.created_at = _utc_now()
         self.config_hash = config_hash
@@ -242,7 +246,23 @@ class RunState:
     def record_done(
         self, key: str, artifacts: Sequence[Path], root: Path
     ) -> None:
-        """Mark ``key`` done and store its artifacts relative to ``root``."""
+        """Mark ``key`` done and store its artifacts relative to ``root``.
+
+        ``root`` must be the directory holding ``state.json`` (the run root),
+        because ``is_done`` resolves the recorded relative paths against it.
+        A mismatch would make every artifact look missing and rerun the stage
+        forever, so it is rejected loudly instead of silently persisted.
+        """
+
+        root = Path(root)
+        if root.resolve() != self._root.resolve():
+            raise PreflightError(
+                "RunState root mismatch: state.json lives in {!r} but "
+                "record_done() was given root {!r}".format(
+                    str(self._root.resolve()), str(root.resolve())
+                ),
+                hint="Construct RunState at '<run root>/state.json'.",
+            )
 
         record = self.stages.get(key)
         now = _utc_now()
@@ -250,7 +270,9 @@ class RunState:
             record = StageRecord(status="running", started_at=now)
             self.stages[key] = record
         record.status = "done"
-        record.artifacts = [_relative_posix(item, root) for item in artifacts]
+        record.artifacts = [
+            _relative_posix(item, self._root) for item in artifacts
+        ]
         record.finished_at = now
         record.error = None
         if record.started_at is None:
@@ -271,7 +293,7 @@ class RunState:
     def _artifact_exists(self, artifact: object) -> bool:
         path = Path(artifact)
         if not path.is_absolute():
-            path = self.path.parent / path
+            path = self._root / path
         return path.exists()
 
     def is_done(
