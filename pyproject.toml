@@ -32,6 +32,10 @@ dependencies = [
   "typer>=0.27.1", 
 ]
 
+[project.optional-dependencies]
+md = ["PyYAML>=6"]
+test = ["pytest>=8", "PyYAML>=6"]
+
 [project.urls]
 Homepage = "https://github.com/MaybeBio/PDB-MD-Suite"
 Issues = "https://github.com/MaybeBio/PDB-MD-Suite/issues"
@@ -41,3 +45,7 @@ pdb-md = "pdb_md.cli:app"
 
 [tool.hatch.build.targets.wheel]                                                                             
 packages = ["pdb_md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

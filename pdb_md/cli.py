@@ -12,8 +12,10 @@ from .rename import MAX_RESNAME_LEN, rename_residues, save_pdb_keeping_columns
 from .termini import strip_5_phosphate
 from .neighbor import find_neighbors, atom_identity
 from .restrain import restrain_topology
+from .md.cli import md_app
 
 app = typer.Typer(help="Pre- and post-processing toolkit for PDB/MMCIF structure files in molecular dynamics workflows.", no_args_is_help=True)
+app.add_typer(md_app, name="md")
 
 @app.command("select", no_args_is_help=True)
 def select_cmd(
