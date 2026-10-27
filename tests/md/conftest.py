@@ -1,6 +1,30 @@
+import copy
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
+import yaml
+
+from pdb_md.md.config import (
+    CoordinationCheck,
+    ForcefieldConfig,
+    GromppConfig,
+    InputConfig,
+    MdpConfig,
+    MdrunConfig,
+    PbcConfig,
+    PreprocessConfig,
+    ReplicatesConfig,
+    ResidueRef,
+    RunConfig,
+    SaltConfig,
+    SolvateConfig,
+    SpeciesConfig,
+    SystemConfig,
+    ToolPaths,
+    TopologyConfig,
+    ZincSite,
+)
 
 
 @pytest.fixture
@@ -14,3 +38,287 @@ def write_script():
         return path
 
     return _write_script
+
+
+# Required keys, kept in sync with pdb_md.md.mdp._REQUIRED_KEYS.
+_MDP_BODIES = {
+    "em1.mdp": (
+        "integrator = steep\n"
+        "nsteps = 5000\n"
+        "emtol = 1000.0\n"
+        "emstep = 0.01\n"
+    ),
+    "em2.mdp": (
+        "integrator = steep\n"
+        "nsteps = 5000\n"
+        "emtol = 1000.0\n"
+        "emstep = 0.01\n"
+    ),
+    "nvt.mdp": (
+        "integrator = md\n"
+        "nsteps = 50000\n"
+        "dt = 0.002\n"
+        "gen_vel = yes\n"
+        "gen_seed = 10001\n"
+        "define = -DPOSRES\n"
+    ),
+    "npt.mdp": (
+        "integrator = md\n"
+        "nsteps = 50000\n"
+        "dt = 0.002\n"
+        "continuation = yes\n"
+        "define = -DPOSRES\n"
+    ),
+    "md.mdp": (
+        "integrator = md\n"
+        "nsteps = 500000\n"
+        "dt = 0.002\n"
+    ),
+}
+
+_STRUCTURE = (
+    "ATOM      1  N   ALA A   1      11.104   6.134  -6.504  1.00  0.00           N\n"
+    "ATOM      2  CA  ALA A   1      11.639   6.071  -5.147  1.00  0.00           C\n"
+    "ATOM      3  C   ALA A   1      13.149   6.046  -5.163  1.00  0.00           C\n"
+    "ATOM      4  O   ALA A   1      13.795   6.976  -4.774  1.00  0.00           O\n"
+    "ATOM      5  CB  ALA A   1      11.057   4.822  -4.379  1.00  0.00           C\n"
+    "TER\n"
+    "END\n"
+)
+
+
+def _write_mdp_files(root: Path) -> None:
+    mdp_dir = root / "mdp"
+    mdp_dir.mkdir(parents=True, exist_ok=True)
+    for name, body in _MDP_BODIES.items():
+        (mdp_dir / name).write_text(body)
+
+
+def _write_inputs(root: Path) -> None:
+    inputs = root / "inputs"
+    inputs.mkdir(parents=True, exist_ok=True)
+    (inputs / "complex.pdb").write_text(_STRUCTURE)
+
+    params = root / "params"
+    params.mkdir(parents=True, exist_ok=True)
+    (params / "ZAFF.prep").write_text("")
+    (params / "ZAFF.frcmod").write_text("")
+
+
+_ATOM_TYPES = 'addAtomTypes { { "ZN" "Zn" "sp3" } { "S4" "S" "sp3" } { "N3" "N" "sp3" } }'
+
+_DEFAULT_YAML = {
+    "schema_version": 1,
+    "run_name": "testrun",
+    "workdir": ".",
+    "tools": {
+        "gmx": "gmx",
+        "tleap": "tleap",
+        "parmed_python": "python",
+        "timeout_minutes": 0,
+    },
+    "input": {
+        "structure": "inputs/complex.pdb",
+        "preprocess": {"enabled": False, "steps": []},
+    },
+    "system": {
+        "solvate": {"box": "TIP3PBOX", "buffer_angstrom": 10.0},
+        "salt": {
+            "concentration_M": 0.15,
+            "cation": "NA",
+            "anion": "CL",
+            "water_count": None,
+            "net_charge": None,
+        },
+        "species": {
+            "metal_resnames": ["ZN", "ZN3", "ZN4"],
+            "dna_resnames": [
+                "DA", "DC", "DG", "DT", "DA5", "DC5", "DG5", "DT5",
+                "DA3", "DC3", "DG3", "DT3",
+            ],
+            "solvent_resnames": ["WAT", "SOL", "HOH", "NA", "CL"],
+        },
+    },
+    "forcefield": {
+        "protein": "leaprc.protein.ff14SB",
+        "nucleic": "leaprc.DNA.bsc1",
+        "water": "leaprc.water.tip3p",
+        "ions_frcmod": "frcmod.ions1lm_126_tip3p",
+        "zaff_prep": "params/ZAFF.prep",
+        "zaff_frcmod": "params/ZAFF.frcmod",
+        "atom_types": _ATOM_TYPES,
+    },
+    "zinc_sites": [
+        {
+            "center_id": 4,
+            "coordination_number": 4,
+            "zn": {"chain": "B", "resid": 365, "resname": "ZN4", "atom": "ZN"},
+            "ligands": [
+                {"chain": "A", "resid": 62, "resname": "CY4", "atom": "SG"},
+                {"chain": "A", "resid": 65, "resname": "CY4", "atom": "SG"},
+                {"chain": "A", "resid": 78, "resname": "HD2", "atom": "NE2"},
+                {"chain": "A", "resid": 82, "resname": "HD2", "atom": "NE2"},
+            ],
+        }
+    ],
+    "coordination_check": {
+        "bond_min_angstrom": 1.8,
+        "bond_max_angstrom": 2.6,
+        "on_violation": "fail",
+        "report_extra_near_atoms": True,
+    },
+    "mdp": {
+        "em": ["mdp/em1.mdp", "mdp/em2.mdp"],
+        "nvt": "mdp/nvt.mdp",
+        "npt": "mdp/npt.mdp",
+        "prod": "mdp/md.mdp",
+    },
+    "grompp": {"maxwarn": 0},
+    "replicates": {"count": 2, "seeds": [10001, 10002]},
+    "mdrun": {"args": ["-nb", "gpu"], "ntomp": None},
+    "pbc": {
+        "enabled": True,
+        "ndx": "auto",
+        "steps": ["whole", "cluster", "whole", "nojump", "center"],
+        "groups": {"cluster": "Complex", "center": "Complex", "output": "System"},
+        "bond_max_angstrom": 3.0,
+    },
+    "topology": {"posre_fc": 1000.0},
+}
+
+_MINIMAL_YAML_OVERRIDES = {
+    "seeds",
+    "center_id",
+    "coordination_number",
+    "duplicate_ligand",
+    "delete_mdp",
+    "maxwarn",
+    "tools",
+    "pbc_ndx",
+    "extra_top_level",
+}
+
+
+@pytest.fixture
+def minimal_yaml(tmp_path):
+    """Write a complete, valid ``run.yaml`` tree and return its path.
+
+    Supported keyword overrides: ``seeds``, ``center_id``,
+    ``coordination_number``, ``duplicate_ligand``, ``delete_mdp``,
+    ``maxwarn``, ``tools``, ``pbc_ndx``, ``extra_top_level``.
+    """
+
+    def _minimal_yaml(base: Path = None, **overrides) -> Path:
+        unknown = set(overrides) - _MINIMAL_YAML_OVERRIDES
+        if unknown:
+            raise TypeError(
+                "unsupported minimal_yaml override(s): {}".format(
+                    ", ".join(sorted(unknown))
+                )
+            )
+
+        base = Path(base or tmp_path)
+        _write_inputs(base)
+        _write_mdp_files(base)
+        data = copy.deepcopy(_DEFAULT_YAML)
+
+        if "seeds" in overrides:
+            data["replicates"]["seeds"] = list(overrides["seeds"])
+        if "center_id" in overrides:
+            data["zinc_sites"][0]["center_id"] = overrides["center_id"]
+        if "coordination_number" in overrides:
+            data["zinc_sites"][0]["coordination_number"] = overrides[
+                "coordination_number"
+            ]
+        if overrides.get("duplicate_ligand"):
+            data["zinc_sites"][0]["ligands"][1] = copy.deepcopy(
+                data["zinc_sites"][0]["ligands"][0]
+            )
+        if "delete_mdp" in overrides:
+            (base / "mdp" / overrides["delete_mdp"]).unlink()
+        if "maxwarn" in overrides:
+            maxwarn = overrides["maxwarn"]
+            if isinstance(maxwarn, dict):
+                data["grompp"].update(maxwarn)
+            else:
+                data["grompp"]["maxwarn"] = maxwarn
+        if "tools" in overrides:
+            data["tools"].update(overrides["tools"])
+        if "pbc_ndx" in overrides:
+            data["pbc"]["ndx"] = overrides["pbc_ndx"]
+        if "extra_top_level" in overrides:
+            data.update(overrides["extra_top_level"])
+
+        path = base / "run.yaml"
+        path.write_text(yaml.safe_dump(data, sort_keys=False))
+        return path
+
+    return _minimal_yaml
+
+
+def _default_zinc_site() -> ZincSite:
+    return ZincSite(
+        center_id=4,
+        coordination_number=4,
+        zn=ResidueRef(chain="A", resid=10, resname="ZN4", atom="ZN"),
+        ligands=(
+            ResidueRef(chain="A", resid=1, resname="CY4", atom="SG"),
+            ResidueRef(chain="A", resid=2, resname="CY4", atom="SG"),
+            ResidueRef(chain="A", resid=3, resname="HD2", atom="NE2"),
+            ResidueRef(chain="A", resid=4, resname="HD2", atom="NE2"),
+        ),
+    )
+
+
+@pytest.fixture
+def make_config(tmp_path):
+    """Build a fully-formed :class:`RunConfig` without going through YAML."""
+
+    def _make(root: Path = None, **overrides) -> RunConfig:
+        root = Path(root or tmp_path)
+        _write_inputs(root)
+        _write_mdp_files(root)
+
+        base = RunConfig(
+            schema_version=1,
+            run_name="testrun",
+            workdir=".",
+            tools=ToolPaths(),
+            input=InputConfig(
+                structure="inputs/complex.pdb",
+                preprocess=PreprocessConfig(),
+            ),
+            system=SystemConfig(
+                solvate=SolvateConfig(),
+                salt=SaltConfig(),
+                species=SpeciesConfig(),
+            ),
+            forcefield=ForcefieldConfig(
+                zaff_prep="params/ZAFF.prep",
+                zaff_frcmod="params/ZAFF.frcmod",
+                atom_types=_ATOM_TYPES,
+            ),
+            zinc_sites=(_default_zinc_site(),),
+            coordination_check=CoordinationCheck(),
+            mdp=MdpConfig(
+                em=("mdp/em1.mdp", "mdp/em2.mdp"),
+                nvt="mdp/nvt.mdp",
+                npt="mdp/npt.mdp",
+                prod="mdp/md.mdp",
+            ),
+            grompp=GromppConfig(),
+            replicates=ReplicatesConfig(count=1, seeds=(10001,)),
+            mdrun=MdrunConfig(),
+            pbc=PbcConfig(),
+            topology=TopologyConfig(),
+            source_path=root / "run.yaml",
+            root=root.resolve(),
+        )
+
+        if "preprocess" in overrides and "input" not in overrides:
+            base = replace(
+                base, input=replace(base.input, preprocess=overrides.pop("preprocess"))
+            )
+        return replace(base, **overrides)
+
+    return _make
