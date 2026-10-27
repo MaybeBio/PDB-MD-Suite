@@ -12,16 +12,11 @@ Zn-site check can verify the metal is isolated from its neighbours).
 """
 
 import math
-import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
 from .errors import ConfigError, PreflightError
-
-# ``^\d+[A-Za-z]?$`` for the whitespace-token fallback path, where the residue
-# number and insertion code arrive glued together (e.g. "365A").
-_RESID_TOKEN = re.compile(r"^(-?\d+)([A-Za-z]?)$")
 
 
 @dataclass(frozen=True)
@@ -143,93 +138,28 @@ class StructureTable:
         return math.dist(a.xyz, b.xyz)
 
 
-def _parse_atom_line(line: str) -> tuple[dict, bool]:
-    """Parse one ATOM/HETATM record.
-
-    Returns ``(fields, used_fallback)``.  Fixed columns are authoritative; a
-    handful of tools emit slightly misaligned ATOM/HETATM lines (an extra space
-    before the residue name), so when the fixed-column fields are not usable
-    the record is re-parsed by whitespace tokens instead of being rejected.
-    """
-    try:
-        serial = int(line[6:11])
-        resid = int(line[22:26])
-        x = float(line[30:38])
-        y = float(line[38:46])
-        z = float(line[46:54])
-    except ValueError:
-        return _parse_atom_line_by_tokens(line), True
-
-    return (
-        {
-            "serial": serial,
-            "name": line[12:16].strip(),
-            "resname": line[17:20].strip(),
-            "chain": line[21:22].strip(),
-            "resid": resid,
-            "icode": line[26:27].strip(),
-            "element": line[76:78].strip() if len(line) >= 78 else "",
-            "xyz": (x, y, z),
-        },
-        False,
-    )
-
-
-def _parse_atom_line_by_tokens(line: str) -> dict:
-    tokens = line.split()
-    # record serial name resname chain resid x y z [occ bfactor element]
-    if len(tokens) < 9:
-        raise PreflightError(
-            "cannot parse ATOM/HETATM record (too few fields): {!r}".format(line)
-        )
-    try:
-        serial = int(tokens[1])
-        x = float(tokens[6])
-        y = float(tokens[7])
-        z = float(tokens[8])
-    except ValueError:
-        raise PreflightError(
-            "cannot parse ATOM/HETATM record (bad serial or coordinates): {!r}".format(
-                line
-            )
-        )
-    match = _RESID_TOKEN.match(tokens[5])
-    if match is None:
-        raise PreflightError(
-            "cannot parse residue number/insertion code {!r}: {!r}".format(
-                tokens[5], line
-            )
-        )
-    element = ""
-    if len(tokens) >= 12 and tokens[-1].isalpha() and len(tokens[-1]) <= 2:
-        element = tokens[-1]
+def _parse_atom_line(line: str) -> dict:
+    """Parse one ATOM/HETATM record via fixed columns."""
+    serial = int(line[6:11])
+    resid = int(line[22:26])
+    x = float(line[30:38])
+    y = float(line[38:46])
+    z = float(line[46:54])
     return {
         "serial": serial,
-        "name": tokens[2],
-        "resname": tokens[3],
-        "chain": tokens[4],
-        "resid": int(match.group(1)),
-        "icode": match.group(2),
-        "element": element,
+        "name": line[12:16].strip(),
+        "resname": line[17:20].strip(),
+        "chain": line[21:22].strip(),
+        "resid": resid,
+        "icode": line[26:27].strip(),
+        "element": line[76:78].strip() if len(line) >= 78 else "",
         "xyz": (x, y, z),
     }
 
 
-def _detect_resname_overflow(line: str, fields: dict, used_fallback: bool) -> bool:
-    """Whether the residue name spills out of its 3-column field.
-
-    Well-aligned records are checked exactly as specified: the 4-column slice
-    ``[17:21]`` must reduce to the same text as the 3-column ``[17:20]``.  A
-    4-character name packed one column early (``[16:20]``, as some tools write
-    it) also counts.  For records that needed the whitespace fallback the
-    token-derived name is checked instead, since the fixed columns are known to
-    be unreliable on that line.
-    """
-    if used_fallback:
-        return len(fields["resname"]) > 3
-    if line[17:21].strip() != line[17:20].strip():
-        return True
-    return len(line[16:21].strip()) > 3
+def _detect_resname_overflow(line: str) -> bool:
+    """Whether the residue name spills out of its 3-column field."""
+    return line[17:21].strip() != line[17:20].strip()
 
 
 def read_pdb(path: Path) -> StructureTable:
@@ -275,8 +205,8 @@ def read_pdb(path: Path) -> StructureTable:
         if record not in ("ATOM", "HETATM"):
             continue
 
-        fields, used_fallback = _parse_atom_line(line)
-        if _detect_resname_overflow(line, fields, used_fallback):
+        fields = _parse_atom_line(line)
+        if _detect_resname_overflow(line):
             resname_overflow = True
 
         atom = AtomRecord(

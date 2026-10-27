@@ -8,7 +8,7 @@ ATOM      2  CA  ALA A  10      1.000   0.000   0.000  1.00  0.00           C
 TER
 ATOM      3  P   DA  A   5      0.000   4.000   0.000  1.00  0.00           P
 TER
-HETATM    4 ZN    ZN4 B 365      1.500   0.000   0.000  1.00  0.00          Zn
+HETATM    4 ZN   ZN4 B 365       1.500   0.000   0.000  1.00  0.00          Zn
 TER
 END
 """
@@ -28,8 +28,11 @@ def test_ter_flags(tmp_path):
     assert all(r.ter_after for r in t.residues)
 
 def test_duplicate_chain_resid_by_insertion_code(tmp_path):
-    text = PDB.replace("ZN    ZN4 B 365", "ZN    ZN4 B 365A")
-    text += "HETATM    5 ZN    ZN4 B 365B      9.000   0.000   0.000  1.00  0.00          Zn\nTER\n"
+    text = PDB.replace(
+        "HETATM    4 ZN   ZN4 B 365       1.500   0.000   0.000  1.00  0.00          Zn",
+        "HETATM    4 ZN   ZN4 B 365A      1.500   0.000   0.000  1.00  0.00          Zn",
+    )
+    text += "HETATM    5 ZN   ZN4 B 365B      9.000   0.000   0.000  1.00  0.00          Zn\nTER\n"
     t = read_pdb(write(tmp_path, text))
     with pytest.raises(PreflightError) as ei:
         t.locate("B", 365)
@@ -41,7 +44,7 @@ def test_missing_residue_reports_candidates(tmp_path):
         t.locate("A", 99)
 
 def test_resname_overflow_detected(tmp_path):
-    text = "ATOM      1  CA HISA A   1      0.000   0.000   0.000  1.00  0.00           C\nTER\nEND\n"
+    text = "ATOM      1  CA  HISAA   1       0.000   0.000   0.000  1.00  0.00           C\nTER\nEND\n"
     assert read_pdb(write(tmp_path, text)).resname_overflow
 
 def test_only_first_model(tmp_path):
