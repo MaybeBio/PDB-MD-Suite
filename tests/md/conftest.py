@@ -76,13 +76,16 @@ _MDP_BODIES = {
     ),
 }
 
+# The structure contains exactly the atoms referenced by the default zinc site
+# (Zn at A:10 ZN4/ZN; ligands A:1 CY4/SG, A:2 CY4/SG, A:3 HD2/NE2,
+# A:4 HD2/NE2), so stage tests can resolve every reference against the file.
 _STRUCTURE = (
-    "ATOM      1  N   ALA A   1      11.104   6.134  -6.504  1.00  0.00           N\n"
-    "ATOM      2  CA  ALA A   1      11.639   6.071  -5.147  1.00  0.00           C\n"
-    "ATOM      3  C   ALA A   1      13.149   6.046  -5.163  1.00  0.00           C\n"
-    "ATOM      4  O   ALA A   1      13.795   6.976  -4.774  1.00  0.00           O\n"
-    "ATOM      5  CB  ALA A   1      11.057   4.822  -4.379  1.00  0.00           C\n"
+    "ATOM      1   SG CY4 A   1       1.800   1.200   1.000  1.00  0.00           S\n"
+    "ATOM      2   SG CY4 A   2      -1.800   1.200  -1.000  1.00  0.00           S\n"
+    "ATOM      3  NE2 HD2 A   3       1.200  -1.800  -1.000  1.00  0.00           N\n"
+    "ATOM      4  NE2 HD2 A   4      -1.200  -1.800   1.000  1.00  0.00           N\n"
     "TER\n"
+    "HETATM    5   ZN ZN4 A  10       0.000   0.000   0.000  1.00  0.00          ZN\n"
     "END\n"
 )
 
@@ -152,12 +155,12 @@ _DEFAULT_YAML = {
         {
             "center_id": 4,
             "coordination_number": 4,
-            "zn": {"chain": "B", "resid": 365, "resname": "ZN4", "atom": "ZN"},
+            "zn": {"chain": "A", "resid": 10, "resname": "ZN4", "atom": "ZN"},
             "ligands": [
-                {"chain": "A", "resid": 62, "resname": "CY4", "atom": "SG"},
-                {"chain": "A", "resid": 65, "resname": "CY4", "atom": "SG"},
-                {"chain": "A", "resid": 78, "resname": "HD2", "atom": "NE2"},
-                {"chain": "A", "resid": 82, "resname": "HD2", "atom": "NE2"},
+                {"chain": "A", "resid": 1, "resname": "CY4", "atom": "SG"},
+                {"chain": "A", "resid": 2, "resname": "CY4", "atom": "SG"},
+                {"chain": "A", "resid": 3, "resname": "HD2", "atom": "NE2"},
+                {"chain": "A", "resid": 4, "resname": "HD2", "atom": "NE2"},
             ],
         }
     ],
@@ -196,6 +199,7 @@ _MINIMAL_YAML_OVERRIDES = {
     "tools",
     "pbc_ndx",
     "extra_top_level",
+    "replicates_count",
 }
 
 
@@ -205,7 +209,8 @@ def minimal_yaml(tmp_path):
 
     Supported keyword overrides: ``seeds``, ``center_id``,
     ``coordination_number``, ``duplicate_ligand``, ``delete_mdp``,
-    ``maxwarn``, ``tools``, ``pbc_ndx``, ``extra_top_level``.
+    ``maxwarn``, ``tools``, ``pbc_ndx``, ``extra_top_level``,
+    ``replicates_count``.
     """
 
     def _minimal_yaml(base: Path = None, **overrides) -> Path:
@@ -224,6 +229,8 @@ def minimal_yaml(tmp_path):
 
         if "seeds" in overrides:
             data["replicates"]["seeds"] = list(overrides["seeds"])
+        if "replicates_count" in overrides:
+            data["replicates"]["count"] = overrides["replicates_count"]
         if "center_id" in overrides:
             data["zinc_sites"][0]["center_id"] = overrides["center_id"]
         if "coordination_number" in overrides:

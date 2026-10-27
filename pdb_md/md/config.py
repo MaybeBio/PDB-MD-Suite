@@ -252,8 +252,24 @@ def _resolve(root: Path, value: str) -> Path:
     return p if p.is_absolute() else root / p
 
 
-def _optional_int(value: Any) -> Optional[int]:
-    return None if value is None else int(value)
+def _coerce(fn: Any, raw: Any, what: str) -> Any:
+    """Apply ``fn`` (``int``/``float``) to ``raw``, reporting bad values.
+
+    A malformed YAML value (e.g. ``count: two``) must be collected into the
+    aggregate :class:`ConfigError` rather than escaping as a raw
+    ``ValueError``/``TypeError``.
+    """
+    try:
+        return fn(raw)
+    except (TypeError, ValueError):
+        kind = "an integer" if fn is int else "a number"
+        raise ConfigError(
+            "run.yaml: {} must be {} (got {!r})".format(what, kind, raw)
+        )
+
+
+def _optional_int(value: Any, what: str = "value") -> Optional[int]:
+    return None if value is None else _coerce(int, value, what)
 
 
 # ---------------------------------------------------------------------------
@@ -267,7 +283,9 @@ def _parse_tools(raw: Any) -> ToolPaths:
         gmx=str(_get(m, "gmx", "gmx")),
         tleap=str(_get(m, "tleap", "tleap")),
         parmed_python=str(_get(m, "parmed_python", "python")),
-        timeout_minutes=float(_get(m, "timeout_minutes", 0.0)),
+        timeout_minutes=_coerce(
+            float, _get(m, "timeout_minutes", 0.0), "tools.timeout_minutes"
+        ),
     )
 
 
@@ -309,14 +327,24 @@ def _parse_system(raw: Any) -> SystemConfig:
     return SystemConfig(
         solvate=SolvateConfig(
             box=str(_get(solvate, "box", "TIP3PBOX")),
-            buffer_angstrom=float(_get(solvate, "buffer_angstrom", 10.0)),
+            buffer_angstrom=_coerce(
+                float, _get(solvate, "buffer_angstrom", 10.0),
+                "system.solvate.buffer_angstrom",
+            ),
         ),
         salt=SaltConfig(
-            concentration_M=float(_get(salt, "concentration_M", 0.15)),
+            concentration_M=_coerce(
+                float, _get(salt, "concentration_M", 0.15),
+                "system.salt.concentration_M",
+            ),
             cation=str(_get(salt, "cation", "NA")),
             anion=str(_get(salt, "anion", "CL")),
-            water_count=_optional_int(_get(salt, "water_count", None)),
-            net_charge=_optional_int(_get(salt, "net_charge", None)),
+            water_count=_optional_int(
+                _get(salt, "water_count", None), "system.salt.water_count"
+            ),
+            net_charge=_optional_int(
+                _get(salt, "net_charge", None), "system.salt.net_charge"
+            ),
         ),
         species=_parse_species(m.get("species")),
     )
@@ -339,7 +367,7 @@ def _parse_ref(raw: Any, context: str) -> ResidueRef:
     m = _mapping(raw, context)
     return ResidueRef(
         chain=str(_require(m, "chain", context)),
-        resid=int(_require(m, "resid", context)),
+        resid=_coerce(int, _require(m, "resid", context), context + ".resid"),
         resname=str(_require(m, "resname", context)),
         atom=str(_require(m, "atom", context)),
     )
@@ -363,8 +391,14 @@ def _parse_zinc_sites(raw: Any) -> Tuple[ZincSite, ...]:
         )
         sites.append(
             ZincSite(
-                center_id=_optional_int(_get(m, "center_id", None)),
-                coordination_number=int(_require(m, "coordination_number", context)),
+                center_id=_optional_int(
+                    _get(m, "center_id", None), context + ".center_id"
+                ),
+                coordination_number=_coerce(
+                    int,
+                    _require(m, "coordination_number", context),
+                    context + ".coordination_number",
+                ),
                 zn=_parse_ref(_require(m, "zn", context), context + ".zn"),
                 ligands=ligands,
             )
@@ -375,8 +409,14 @@ def _parse_zinc_sites(raw: Any) -> Tuple[ZincSite, ...]:
 def _parse_coordination(raw: Any) -> CoordinationCheck:
     m = _mapping(raw, "coordination_check")
     return CoordinationCheck(
-        bond_min_angstrom=float(_get(m, "bond_min_angstrom", 1.8)),
-        bond_max_angstrom=float(_get(m, "bond_max_angstrom", 2.6)),
+        bond_min_angstrom=_coerce(
+            float, _get(m, "bond_min_angstrom", 1.8),
+            "coordination_check.bond_min_angstrom",
+        ),
+        bond_max_angstrom=_coerce(
+            float, _get(m, "bond_max_angstrom", 2.6),
+            "coordination_check.bond_max_angstrom",
+        ),
         on_violation=str(_get(m, "on_violation", "fail")),
         report_extra_near_atoms=bool(_get(m, "report_extra_near_atoms", True)),
     )
@@ -398,10 +438,13 @@ def _parse_mdp(raw: Any) -> MdpConfig:
 def _parse_grompp(raw: Any) -> GromppConfig:
     m = _mapping(raw, "grompp")
     by_stage = tuple(
-        (str(name), int(value)) for name, value in m.items() if name != "maxwarn"
+        (str(name), _coerce(int, value, "grompp.{}".format(name)))
+        for name, value in m.items()
+        if name != "maxwarn"
     )
     return GromppConfig(
-        default_maxwarn=int(_get(m, "maxwarn", 0)), by_stage=by_stage
+        default_maxwarn=_coerce(int, _get(m, "maxwarn", 0), "grompp.maxwarn"),
+        by_stage=by_stage,
     )
 
 
@@ -409,8 +452,11 @@ def _parse_replicates(raw: Any) -> ReplicatesConfig:
     m = _mapping(raw, "replicates")
     raw_seeds = _get(m, "seeds", ()) or ()
     return ReplicatesConfig(
-        seeds=tuple(int(seed) for seed in raw_seeds),
-        count=int(_get(m, "count", 3)),
+        seeds=tuple(
+            _coerce(int, seed, "replicates.seeds[{}]".format(index))
+            for index, seed in enumerate(raw_seeds, 1)
+        ),
+        count=_coerce(int, _get(m, "count", 3), "replicates.count"),
     )
 
 
@@ -419,7 +465,7 @@ def _parse_mdrun(raw: Any) -> MdrunConfig:
     raw_args = _get(m, "args", ()) or ()
     return MdrunConfig(
         args=tuple(str(arg) for arg in raw_args),
-        ntomp=_optional_int(_get(m, "ntomp", None)),
+        ntomp=_optional_int(_get(m, "ntomp", None), "mdrun.ntomp"),
     )
 
 
@@ -440,13 +486,17 @@ def _parse_pbc(raw: Any) -> PbcConfig:
         ndx=str(_get(m, "ndx", "auto")),
         steps=tuple(str(step) for step in raw_steps),
         groups=_parse_pbc_groups(m.get("groups")),
-        bond_max_angstrom=float(_get(m, "bond_max_angstrom", 3.0)),
+        bond_max_angstrom=_coerce(
+            float, _get(m, "bond_max_angstrom", 3.0), "pbc.bond_max_angstrom"
+        ),
     )
 
 
 def _parse_topology(raw: Any) -> TopologyConfig:
     m = _mapping(raw, "topology")
-    return TopologyConfig(posre_fc=float(_get(m, "posre_fc", 1000.0)))
+    return TopologyConfig(
+        posre_fc=_coerce(float, _get(m, "posre_fc", 1000.0), "topology.posre_fc")
+    )
 
 
 _SECTION_PARSERS = {
@@ -488,6 +538,8 @@ def _check_mdp_file(
         check_mdp(path, stage)
     except ConfigError as exc:
         errors.append("{}: {}".format(label, exc.message))
+    except OSError as exc:
+        errors.append("{}: cannot read mdp file {}: {}".format(label, path, exc))
 
 
 def _validate_zinc_sites(sites: Tuple[ZincSite, ...], errors: List[str]) -> None:
