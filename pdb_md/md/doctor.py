@@ -16,7 +16,7 @@ from typing import List
 
 from .config import RunConfig
 from .coords import read_pdb
-from .errors import ConfigError, PreflightError
+from .errors import ConfigError, PreflightError, StageError
 from .runner import Runner
 from .zinc import preflight_structure, validate_sites
 
@@ -81,13 +81,12 @@ def _check_parmed(cfg: RunConfig, runner: Runner) -> Check:
         "import parmed; print(parmed.__version__)",
     ]
     try:
-        output = runner.run_capture(argv, check=False)
+        output = runner.run_capture(argv)
     except OSError as exc:
         return _tool_failure("parmed", argv, exc)
-    version = _first_line(output)
-    if not version:
+    except StageError:
         return Check("parmed", False, "parmed is not importable in {}".format(argv[0]))
-    return Check("parmed", True, version)
+    return Check("parmed", True, _first_line(output))
 
 
 def _check_mdp(cfg: RunConfig) -> Check:

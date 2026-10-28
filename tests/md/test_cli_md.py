@@ -35,6 +35,17 @@ def test_doctor_missing_tool_exit_3(tmp_path, minimal_yaml):
     assert CliRunner().invoke(app, ["md", "doctor", str(p)]).exit_code == 3
 
 
+def test_doctor_missing_parmed_reports_fail(tmp_path, minimal_yaml, write_script):
+    bad_parmed = write_script(
+        tmp_path / "bad_parmed",
+        "#!/bin/sh\necho 'ModuleNotFoundError: No module named parmed' >&2\nexit 1\n",
+    )
+    p = minimal_yaml(tmp_path, tools={"parmed_python": str(bad_parmed)})
+    result = CliRunner().invoke(app, ["md", "doctor", str(p)])
+    assert result.exit_code == 3
+    assert "parmed" in result.output
+
+
 def test_only_implies_force(monkeypatch, tmp_path, minimal_yaml):
     from pdb_md.md import cli as mdcli
 
