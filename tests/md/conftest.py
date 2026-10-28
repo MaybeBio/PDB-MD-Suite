@@ -4,7 +4,9 @@ from pathlib import Path
 
 import pytest
 import yaml
+from typer.testing import CliRunner
 
+from pdb_md.cli import app
 from pdb_md.md.config import (
     CoordinationCheck,
     ForcefieldConfig,
@@ -25,6 +27,8 @@ from pdb_md.md.config import (
     TopologyConfig,
     ZincSite,
 )
+
+from tests.md.fixtures import FAKE_GMX, FAKE_PARMED, FAKE_TLEAP, PDB_WITH_ZN
 
 
 @pytest.fixture
@@ -329,3 +333,51 @@ def make_config(tmp_path):
         return replace(base, **overrides)
 
     return _make
+
+
+@pytest.fixture
+def e2e_run(tmp_path, monkeypatch, write_script, minimal_yaml):
+    """Factory building a run dir wired to fake ``gmx``/``tleap``/ParmEd tools.
+
+    ``_e2e_run(n_replicas=1, fail_stage=None)`` returns ``(run_dir, invoke)``
+    where ``invoke`` calls the root Typer app in-process.  Every fake tool
+    appends a token line to ``$E2E_CALLS`` only for real stage actions, so a
+    skip-only run adds no lines and ``--version`` probes stay invisible.
+    """
+
+    def _e2e_run(n_replicas=1, fail_stage=None):
+        run_dir = tmp_path / "run"
+        run_dir.mkdir(parents=True, exist_ok=True)
+
+        fake_gmx = write_script(run_dir / "fake_gmx", FAKE_GMX)
+        fake_tleap = write_script(run_dir / "fake_tleap", FAKE_TLEAP)
+        fake_parmed = write_script(run_dir / "fake_parmed", FAKE_PARMED)
+
+        calls = run_dir / "calls.log"
+        calls.write_text("", encoding="utf-8")
+        monkeypatch.setenv("E2E_CALLS", str(calls))
+        monkeypatch.setenv("E2E_FAIL_STAGE", fail_stage or "")
+
+        minimal_yaml(
+            run_dir,
+            tools={
+                "gmx": str(fake_gmx),
+                "tleap": str(fake_tleap),
+                "parmed_python": str(fake_parmed),
+            },
+            replicates_count=n_replicas,
+            seeds=[10000 * i + i for i in range(1, n_replicas + 1)],
+            extra_top_level={"mdrun": {"args": []}},
+        )
+        # ``minimal_yaml``'s structure has no TER after the Zn, which
+        # ``zinc.validate_sites`` rejects.  Use the complete fixture instead.
+        (run_dir / "inputs" / "complex.pdb").write_text(
+            PDB_WITH_ZN, encoding="utf-8"
+        )
+
+        def invoke(args, **kwargs):
+            return CliRunner().invoke(app, args, **kwargs)
+
+        return run_dir, invoke
+
+    return _e2e_run
