@@ -54,6 +54,9 @@ def test_render_bonds_and_pass_difference(make_config):
     assert "addionsrand" in p2 and "solvateBox" not in p2
     assert "loadamberparm" in p2
     assert cfg.forcefield.atom_types.strip() in p1
+    # File paths must be absolute because tleap runs with cwd=01_zaff.
+    assert "loadAmberPrep {}".format(cfg.path(cfg.forcefield.zaff_prep)) in p1
+    assert "loadAmberParams {}".format(cfg.path(cfg.forcefield.zaff_frcmod)) in p1
 
 
 def test_parse_log():

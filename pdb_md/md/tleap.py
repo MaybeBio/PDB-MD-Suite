@@ -7,10 +7,11 @@ by :func:`compute_split_counts`.  Splitting the run lets the water count (and
 therefore the ion count) be read from the pass-1 ``leap.log`` instead of
 guessed from the structure.
 
-All script paths are written absolute where a real filesystem path is expected
-(``loadpdb``), because ``tleap`` is executed from the ``01_zaff/`` stage
-directory.  AMBER system names (``source``/``loadAmberParams``/atom types) are
-written verbatim from the configuration.
+``loadpdb``, ``loadAmberPrep`` (``zaff_prep``) and ``loadAmberParams``
+(``zaff_frcmod``) are written absolute via :meth:`RunConfig.path` because they
+are filesystem paths, and ``tleap`` is executed from the ``01_zaff/`` stage
+directory.  The ``source`` lines and ``loadAmberParams {ions_frcmod}`` are AMBER
+system names and are written verbatim from the configuration.
 """
 
 import math
@@ -102,8 +103,8 @@ def _header_lines(cfg: RunConfig) -> List[str]:
         "source {}".format(ff.protein),
         "source {}".format(ff.nucleic),
         "source {}".format(ff.water),
-        "loadAmberPrep {}".format(ff.zaff_prep),
-        "loadAmberParams {}".format(ff.zaff_frcmod),
+        "loadAmberPrep {}".format(cfg.path(ff.zaff_prep)),
+        "loadAmberParams {}".format(cfg.path(ff.zaff_frcmod)),
         "loadAmberParams {}".format(ff.ions_frcmod),
         ff.atom_types,
     ]

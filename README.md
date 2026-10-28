@@ -1278,12 +1278,12 @@ zinc_sites:
       - {chain: A, resid: 82, resname: HD2, atom: NE2}
 ```
 
-The stage validates each site against the input PDB (including the Zn–ligand
-distance window) before calling `tleap`. Site coordinates in the input PDB are
-not system atom numbers: `tleap` may add hydrogens and reorder atoms, so the
-pipeline maps each site through LEaP residue *positions* and records the result
-in the stage report for later stages (the PBC distance check re-checkes the
-result against `conf.gro` atom names).
+The stage validates each site against the preprocessed `00_input/structure.pdb`
+(including the Zn–ligand distance window) before calling `tleap`. Coordinates in
+that file are not system atom numbers: `tleap` may add hydrogens and reorder
+atoms, so the topology stage maps each site through LEaP residue *positions* and
+writes the result to `02_topology/site_atoms.json`, re-checking it against
+`conf.gro` atom names. The PBC stage reads that file for its distance check.
 
 Solvation and salt are split into two `tleap` passes: pass 1 loads the
 ZAFF-prepared structure, bonds each Zn to its ligands, solvates the box, and its
@@ -1293,12 +1293,12 @@ and adds the SPLIT counter-/co-ions computed from those numbers.
 ### The PBC stage
 
 Each production replica is corrected with the standard five-step `trjconv`
-workflow, using the fixed group names `cluster: Complex`, `center: Complex` and
-`output: System`:
+workflow, using the default group names `cluster: Complex`, `center: Complex`
+and `output: System` (overridable via `pbc.groups` in `run.yaml`):
 
 1. `whole` → `_1whole.xtc`
 2. `cluster` → `_2cluster.xtc`
-3. `whole` (zn/ligands) → `_3whole.xtc`
+3. `whole` → `_3whole.xtc`
 4. `nojump` with the frame-0 reference → `_4nojump.xtc`
 5. `center` → `_5center.xtc`
 
