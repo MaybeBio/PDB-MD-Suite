@@ -8,6 +8,7 @@ Validation never stops at the first problem: every error found across the
 whole document is collected and raised in one :class:`ConfigError`.
 """
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -690,12 +691,21 @@ def load_config(path: Path) -> RunConfig:
     run_name = raw.get("run_name")
     if not isinstance(run_name, str) or not run_name.strip():
         errors.append("run_name must be a non-empty string")
+    elif re.fullmatch(r"[A-Za-z0-9._-]+", run_name) is None:
+        errors.append(
+            "run_name may only contain letters, digits, '.' '_' and '-'"
+        )
 
     workdir = raw.get("workdir", ".")
     if not isinstance(workdir, str) or not workdir:
         errors.append("workdir must be a non-empty string")
         workdir = "."
     root = (source_path.parent / workdir).resolve()
+    if any(ch.isspace() for ch in str(root)):
+        errors.append(
+            "run directory path must not contain whitespace "
+            "(LEaP cannot quote paths)"
+        )
 
     parsed: Dict[str, Any] = {}
     for name, parser in _SECTION_PARSERS.items():

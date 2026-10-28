@@ -102,7 +102,7 @@ def _check_structure(cfg: RunConfig) -> Check:
         table = read_pdb(path)
         preflight_structure(table)
         validate_sites(table, list(cfg.zinc_sites), cfg.coordination_check)
-    except (PreflightError, ConfigError, OSError) as exc:
+    except (PreflightError, ConfigError, OSError, ValueError) as exc:
         message = getattr(exc, "message", None) or str(exc)
         return Check("structure", False, message)
     return Check(

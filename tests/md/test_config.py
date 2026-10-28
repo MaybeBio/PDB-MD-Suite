@@ -128,3 +128,16 @@ def test_minimal_yaml_structure_contains_zinc_site_atoms(minimal_yaml, tmp_path)
     site = cfg.zinc_sites[0]
     for ref in (site.zn,) + tuple(site.ligands):
         assert (ref.chain, ref.resid, ref.resname, ref.atom) in atoms
+
+
+def test_run_name_charset_is_config_error(minimal_yaml, tmp_path):
+    # ``run_name`` is interpolated into LEaP input; reject shell/LEaP syntax.
+    p = minimal_yaml(tmp_path, extra_top_level={"run_name": "bad/name"})
+    with pytest.raises(ConfigError, match="run_name may only contain"):
+        load_config(p)
+
+
+def test_run_dir_whitespace_is_config_error(minimal_yaml, tmp_path):
+    p = minimal_yaml(tmp_path / "with space")
+    with pytest.raises(ConfigError, match="whitespace"):
+        load_config(p)

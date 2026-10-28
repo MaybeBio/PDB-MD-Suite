@@ -57,3 +57,11 @@ def test_distance(tmp_path):
     zn = t.atom(type("R", (), {"chain": "B", "resid": 365, "atom": "ZN"})())
     ca = t.atom(type("R", (), {"chain": "A", "resid": 10, "atom": "CA"})())
     assert t.distance(zn, ca) == pytest.approx(0.5)
+
+def test_malformed_atom_line_is_config_error(tmp_path):
+    text = (
+        "ATOM  XXXX  CA  ALA A   1       0.000   0.000   0.000  1.00  0.00           C\n"
+        "TER\nEND\n"
+    )
+    with pytest.raises(ConfigError, match="line 1"):
+        read_pdb(write(tmp_path, text))

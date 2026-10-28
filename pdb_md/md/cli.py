@@ -194,7 +194,15 @@ def _prompt_values() -> Dict[str, str]:
     values["prod_mdp"] = typer.prompt(
         "prod mdp", default=_DEFAULT_VALUES["prod_mdp"]
     )
-    count = int(typer.prompt("replicates count", default=_DEFAULT_VALUES["replicates"]))
+    while True:
+        raw_count = typer.prompt(
+            "replicates count", default=_DEFAULT_VALUES["replicates"]
+        )
+        try:
+            count = int(raw_count)
+            break
+        except ValueError:
+            typer.echo("Please enter an integer.", err=True)
     values["replicates"] = str(count)
     values["seeds"] = ", ".join(str(10000 * i + i) for i in range(1, count + 1))
     values["salt_concentration"] = typer.prompt(
@@ -254,7 +262,10 @@ def execute_run(
         stages = select_stages(
             stages, from_key=from_key, to_key=to_key, only=only, replica=replica
         )
-        actions = compute_actions(stages, state, cfg, cfg.root, force=force)
+        # ``--only`` is sugar for ``--from X --to X`` *with* default force.
+        actions = compute_actions(
+            stages, state, cfg, cfg.root, force=force or only is not None
+        )
         _echo_actions(actions)
 
         if dry_run:

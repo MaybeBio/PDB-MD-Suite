@@ -33,3 +33,22 @@ def test_status_json(tmp_path, minimal_yaml):
 def test_doctor_missing_tool_exit_3(tmp_path, minimal_yaml):
     p = minimal_yaml(tmp_path, tools={"gmx": "/nonexistent/gmx"})
     assert CliRunner().invoke(app, ["md", "doctor", str(p)]).exit_code == 3
+
+
+def test_only_implies_force(monkeypatch, tmp_path, minimal_yaml):
+    from pdb_md.md import cli as mdcli
+
+    p = minimal_yaml(tmp_path)
+    seen = {}
+
+    def fake_compute_actions(stages, state, cfg, root, force=False):
+        seen["force"] = force
+        return []
+
+    monkeypatch.setattr(mdcli, "compute_actions", fake_compute_actions)
+
+    assert mdcli.execute_run(p, True, True, None, None, "zaff", None, False) == 0
+    assert seen["force"] is True
+
+    assert mdcli.execute_run(p, True, True, None, None, None, None, False) == 0
+    assert seen["force"] is False

@@ -181,7 +181,7 @@ def read_pdb(path: Path) -> StructureTable:
     pending_break = True
 
     text = path.read_text(encoding="utf-8", errors="replace")
-    for line in text.splitlines():
+    for lineno, line in enumerate(text.splitlines(), 1):
         record = line[:6].strip()
 
         if record == "MODEL":
@@ -205,7 +205,12 @@ def read_pdb(path: Path) -> StructureTable:
         if record not in ("ATOM", "HETATM"):
             continue
 
-        fields = _parse_atom_line(line)
+        try:
+            fields = _parse_atom_line(line)
+        except ValueError as exc:
+            raise ConfigError(
+                "cannot parse PDB line {}: {!r}".format(lineno, line)
+            ) from exc
         if _detect_resname_overflow(line):
             resname_overflow = True
 

@@ -176,7 +176,11 @@ class Runner:
         timeout_s: Optional[float] = None,
         check: bool = True,
     ) -> str:
-        """Run ``argv`` and return its stdout, raising on failure.
+        """Run ``argv`` and return combined stdout+stderr, raising on failure.
+
+        The two streams are concatenated with stdout first.  Some tools (e.g.
+        real ``gmx check``) write their diagnostics to stderr, so callers that
+        parse the output must see both.
 
         Unlike :meth:`run`, output is not written to a log file.
         """
@@ -220,7 +224,7 @@ class Runner:
                 tail=combined.splitlines()[-TAIL_LINES:],
             )
 
-        return proc.stdout
+        return (proc.stdout or "") + (proc.stderr or "")
 
     def which(self, exe: str) -> Optional[str]:
         """Return the path to ``exe``, or ``None`` if it is not on PATH."""

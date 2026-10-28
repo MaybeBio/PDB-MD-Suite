@@ -54,7 +54,7 @@ DISTANCE_XVG = "zn_distances.xvg"
 REPORT_NAME = "pbc_report.json"
 
 #: ``gmx check`` summary line that reports the number of atoms read.
-_CHECK_ATOMS_RE = re.compile(r"Read\s+(\d+)\s+atoms")
+_CHECK_ATOMS_RE = re.compile(r"(?:Read\s+|#\s*Atoms\s+)(\d+)", re.IGNORECASE)
 
 
 class PbcStage:

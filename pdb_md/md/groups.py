@@ -93,7 +93,9 @@ def read_ndx(path: Path) -> Dict[str, List[int]]:
     """
     groups: Dict[str, List[int]] = {}
     current: Optional[List[int]] = None
-    for raw in Path(path).read_text(encoding="utf-8").splitlines():
+    for lineno, raw in enumerate(
+        Path(path).read_text(encoding="utf-8").splitlines(), 1
+    ):
         line = raw.strip()
         if not line:
             continue
@@ -105,7 +107,12 @@ def read_ndx(path: Path) -> Dict[str, List[int]]:
             raise PreflightError(
                 "{}: atom list appears before the first group header".format(path)
             )
-        current.extend(int(token) for token in line.split())
+        try:
+            current.extend(int(token) for token in line.split())
+        except ValueError as exc:
+            raise PreflightError(
+                "{}:{}: non-numeric atom index".format(path, lineno)
+            ) from exc
     return groups
 
 

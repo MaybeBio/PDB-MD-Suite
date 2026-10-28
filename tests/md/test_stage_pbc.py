@@ -14,7 +14,7 @@ pathlib.Path("calls.log").open("a").write(" ".join(args) + " ||| " + stdin + "\n
 if args[0] == "trjconv":
     pathlib.Path(args[args.index("-o") + 1]).write_text("x")
 elif args[0] == "check":
-    print("Read 6 atoms")
+    print("# Atoms  6", file=sys.stderr)
 elif args[0] == "distance":
     n = args.count("-select")
     pathlib.Path(args[args.index("-oav") + 1]).write_text(
@@ -70,6 +70,6 @@ def test_distance_violation_fails(tmp_path, make_config, write_script):
 
 def test_atom_count_mismatch_fails(tmp_path, make_config, write_script):
     cfg, ctx = setup(tmp_path, make_config, write_script,
-                     FAKE_GMX.replace("Read 6 atoms", "Read 5 atoms"))
+                     FAKE_GMX.replace("# Atoms  6", "# Atoms  5"))
     with pytest.raises(StageError, match="atom"):
         PbcStage(cfg, 1).run(ctx)

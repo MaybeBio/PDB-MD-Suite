@@ -35,3 +35,9 @@ def test_timeout(tmp_path, write_script):
 def test_run_capture(tmp_path, write_script):
     exe = write_script(tmp_path / "out", "#!/usr/bin/env bash\necho 2025.1\n")
     assert Runner(tmp_path / "logs").run_capture([str(exe)]) == "2025.1\n"
+
+def test_run_capture_includes_stderr(tmp_path, write_script):
+    exe = write_script(
+        tmp_path / "both", "#!/usr/bin/env bash\necho out\necho err >&2\n"
+    )
+    assert Runner(tmp_path / "logs").run_capture([str(exe)]) == "out\nerr\n"

@@ -117,7 +117,7 @@ def main():
         return 0
 
     if command == "check":
-        print("Read 7 atoms")
+        print("# Atoms  7", file=sys.stderr)
         _log("check")
         return 0
 

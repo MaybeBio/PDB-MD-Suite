@@ -24,3 +24,9 @@ def test_missing_group_lists_available(tmp_path):
     p = tmp_path / "pbc.ndx"; write_ndx(build_groups(gro(), SpeciesConfig()), p)
     with pytest.raises(PreflightError, match="Protein"):
         resolve_group(p, "Protein_Zn")
+
+def test_non_numeric_index_is_preflight_error(tmp_path):
+    p = tmp_path / "bad.ndx"
+    p.write_text("[ System ]\n1 2 x\n", encoding="utf-8")
+    with pytest.raises(PreflightError, match="bad.ndx:2"):
+        read_ndx(p)
