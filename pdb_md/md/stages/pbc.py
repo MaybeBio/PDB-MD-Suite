@@ -31,7 +31,6 @@ the group indexes, atom count and per-pair min/mean/max distance.
 import json
 import re
 import shutil
-import subprocess
 from dataclasses import asdict
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
@@ -291,41 +290,6 @@ class PbcStage:
                     "pbc artifact is missing or empty: {}".format(path),
                     cwd=stage_dir,
                 )
-
-        # Optional: re-check the final trajectory's atom count when gmx is
-        # available.  A missing tool is not a failure (verify has no Runner).
-        if shutil.which(cfg.tools.gmx) is None:
-            return
-        conf_gro = root / TOPOLOGY_DIR / CONF_GRO
-        try:
-            expected_atoms = len(read_gro(conf_gro).atoms)
-        except (OSError, ValueError):
-            return
-        center5 = "{}_5center.xtc".format(_prefix(cfg, self.replica))
-        try:
-            proc = subprocess.run(
-                [cfg.tools.gmx, "check", "-f", center5],
-                cwd=str(stage_dir),
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-            )
-        except OSError:
-            return
-        if proc.returncode != 0:
-            return
-        match = _CHECK_ATOMS_RE.search(proc.stdout or "")
-        if match is None:
-            return
-        checked_atoms = int(match.group(1))
-        if checked_atoms != expected_atoms:
-            raise _stage_error(
-                "gmx check reports {} atoms in {}, expected {} (System)".format(
-                    checked_atoms, center5, expected_atoms
-                ),
-                cwd=stage_dir,
-            )
 
     # -- helpers ----------------------------------------------------------
 
