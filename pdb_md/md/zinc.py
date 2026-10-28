@@ -13,11 +13,12 @@ match *this* PDB) raise :class:`PreflightError` (exit code 3), never
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Set, Tuple
+from typing import List, Optional, Sequence, Set, Tuple
 
 from .config import CoordinationCheck, ResidueRef, ZincSite
 from .coords import AtomRecord, ResidueRecord, StructureTable
-from .errors import PreflightError
+from .errors import PreflightError, StageError
+from .gromacs import GroAtom
 
 
 #: Atom names that may coordinate a Zn if they sit inside the bond window.
@@ -46,6 +47,14 @@ class ExtraNear:
     atom: str
     distance: float
     atom_index: int
+
+
+@dataclass(frozen=True)
+class SiteAtoms:
+    """A zinc site resolved to 1-based atom numbers in the solvated system."""
+
+    zn: int
+    ligand_atoms: List[int]
 
 
 @dataclass(frozen=True)
@@ -248,3 +257,91 @@ def _find_extra_near(
                 )
             )
     return extra
+
+
+def map_site_atoms(
+    sites: List[dict],
+    residue_atoms: List[List[str]],
+    gro_atoms: Sequence[GroAtom],
+) -> List[SiteAtoms]:
+    """Map reported zinc sites to 1-based atom numbers in the solvated system.
+
+    ``sites`` is the ``zinc_sites`` list from ``01_zaff/zaff_report.json``;
+    ``residue_atoms`` is :func:`pdb_md.md.tleap.prmtop_residue_atoms` for the
+    solvated topology (each residue's atom names in LEaP/prmtop order, which is
+    also ``conf.gro`` order); ``gro_atoms`` are the atoms of the converted
+    ``conf.gro``.  Each atom number is checked against the name in the ``.gro``,
+    so a silent reordering during conversion is caught.  Duplicate atom names
+    within a residue resolve to their first occurrence (``list.index``).
+    """
+    mapped: List[SiteAtoms] = []
+    for position, site in enumerate(sites, 1):
+        label = site.get("index", position)
+        zn = _system_atom_number(
+            label, site["zn"]["position"], "ZN", residue_atoms, gro_atoms
+        )
+        ligand_atoms = [
+            _system_atom_number(
+                label,
+                ligand["position"],
+                ligand["atom"],
+                residue_atoms,
+                gro_atoms,
+            )
+            for ligand in site.get("ligands", [])
+        ]
+        mapped.append(SiteAtoms(zn=zn, ligand_atoms=ligand_atoms))
+    return mapped
+
+
+def _system_atom_number(
+    site_index: object,
+    position: int,
+    atom: str,
+    residue_atoms: List[List[str]],
+    gro_atoms: Sequence[GroAtom],
+) -> int:
+    """Resolve one LEaP (residue position, atom name) pair to a system index."""
+    if position < 1 or position > len(residue_atoms):
+        raise StageError(
+            "zinc site {}: residue position {} is out of range for the "
+            "solvated topology ({} residues) while mapping atom {}".format(
+                site_index, position, len(residue_atoms), atom
+            ),
+            argv=[],
+            cwd=None,
+            returncode=0,
+            tail=[],
+        )
+
+    names = residue_atoms[position - 1]
+    try:
+        offset = names.index(atom)
+    except ValueError:
+        raise StageError(
+            "zinc site {}: atom {} is not present in residue position {} "
+            "(atoms: {})".format(
+                site_index, atom, position, ", ".join(names) or "<none>"
+            ),
+            argv=[],
+            cwd=None,
+            returncode=0,
+            tail=[],
+        )
+
+    number = sum(len(residue) for residue in residue_atoms[: position - 1])
+    number += offset + 1
+
+    if number > len(gro_atoms) or gro_atoms[number - 1].name != atom:
+        found = (
+            gro_atoms[number - 1].name if number <= len(gro_atoms) else "<none>"
+        )
+        raise StageError(
+            "zinc site {}: mapped atom {} to system atom {}, but conf.gro "
+            "names that atom {!r}".format(site_index, atom, number, found),
+            argv=[],
+            cwd=None,
+            returncode=0,
+            tail=[],
+        )
+    return number
