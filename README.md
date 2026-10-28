@@ -1199,3 +1199,119 @@ gmx trjconv -s $RUN.tpr -f ${RUN}_4nojump.xtc -n $NDX -center -o ${RUN}_5center.
 ### A typical workflow for preparing a PDB file for MD simulation
 
 pdb from Homology modeling/ Alphafold prediction ->  pdbfixer(fix missing atoms, remove heterogens and hydrogens) -> pdb-md select (select chains and residues) -> pdb-md termini-rm5p (remove 5' terminal phosphate group for nucleic acids) -> pdb4amber renum(`optional`, but 1recommended) -> protonation (add hydrogens) status determined, followed by pdb-md res-rename (rename residues to the force field's protonation-state names) -> pdb4amber renum(`optional`, only if needed)  -> pdb2gmx/pdb4amber (generate topology and coordinates for MD simulation)
+
+## 🔟 End-to-end MD pipeline (`pdb-md md`)
+
+The `md` subcommand turns the manual steps above into one reproducible run:
+`zaff` (Amber topology with the ZAFF bonded zinc model) → `topology`
+(ParmEd conversion to GROMACS) → energy minimization → NVT/NPT equilibration →
+production → PBC correction. Each stage is resumable, hashed against its inputs,
+and skippable when nothing upstream changed.
+
+### Installation
+
+```bash
+pip install "pdb-md[md]"
+```
+
+The `md` extra only adds `PyYAML` (for `run.yaml`). GROMACS, AmberTools
+(`tleap`) and ParmEd are external tools you install and point at yourself; they
+are not bundled.
+
+### Typical workflow
+
+```bash
+# 1. Write a documented run.yaml template next to your inputs.
+pdb-md md init --template --output run.yaml
+
+# 2. Edit run.yaml: input structure, zinc_sites, mdp files, tool paths.
+#    Every relative path resolves against the directory holding run.yaml.
+
+# 3. Check that gmx / tleap / ParmEd / mdp files / the structure are usable.
+pdb-md md doctor run.yaml
+
+# 4. Print the plan (RUN/SKIP per stage) without executing anything.
+pdb-md md run run.yaml --dry-run
+
+# 5. Execute. --yes skips the production-MD confirmation prompt.
+pdb-md md run run.yaml --yes
+
+# Resume or inspect at any time.
+pdb-md md status .
+pdb-md md stage zaff <run_dir>       # run one stage (plus settled deps)
+pdb-md md pbc <run_dir> --replica 1  # only the PBC correction for one replica
+```
+
+### Run directory contract
+
+```
+<run_name>/
+  run.yaml                  # editable config; relative paths resolve against this file's dir
+  state.json                # stage status, input hashes, artifacts, timing, tool versions
+  .lock                     # fcntl lock preventing concurrent runs of the same run
+  logs/
+    run.log zaff.log topology.log em.log nvt.log npt.log prod.log pbc.log
+  00_input/structure.pdb    # input copy, never modified
+  01_zaff/   tleap_zaff.in  leap.log  <name>_dry.prmtop/.inpcrd/.pdb  <name>_solv.prmtop/.inpcrd/.pdb  zaff_report.json
+  02_topology/  topol.top conf.gro posre_<moleculetype>.itp topology_report.json
+  03_em/       em1.tpr/.gro/.edr/.log  em2.tpr/.gro/.edr/.log
+  04_nvt/repN/ nvt.tpr|.gro|.edr|.log|.cpt
+  05_npt/repN/ npt.tpr|.gro|.edr|.log|.cpt
+  06_prod/repN/ <prefix>.tpr|.gro|.xtc|.edr|.log|.cpt
+  07_pbc/repN/ pbc.ndx  <prefix>_1whole.xtc _2cluster.xtc _3whole.xtc _4nojump.xtc _5center.xtc <prefix>_frame0.gro  pbc_report.json
+```
+
+### The ZAFF stage
+
+ZAFF is a bonded (four-coordinate) zinc model, so every site must have exactly
+four ligands:
+
+```yaml
+zinc_sites:
+  - center_id: 4               # optional; center 11/12 is rejected (cannot be modelled)
+    coordination_number: 4     # ZAFF supports 4 only
+    zn: {chain: B, resid: 365, resname: ZN4, atom: ZN}
+    ligands:
+      - {chain: A, resid: 62, resname: CY4, atom: SG}
+      - {chain: A, resid: 65, resname: CY4, atom: SG}
+      - {chain: A, resid: 78, resname: HD2, atom: NE2}
+      - {chain: A, resid: 82, resname: HD2, atom: NE2}
+```
+
+The stage validates each site against the input PDB (including the Zn–ligand
+distance window) before calling `tleap`. Site coordinates in the input PDB are
+not system atom numbers: `tleap` may add hydrogens and reorder atoms, so the
+pipeline maps each site through LEaP residue *positions* and records the result
+in the stage report for later stages (the PBC distance check re-checkes the
+result against `conf.gro` atom names).
+
+Solvation and salt are split into two `tleap` passes: pass 1 loads the
+ZAFF-prepared structure, bonds each Zn to its ligands, solvates the box, and its
+`leap.log` supplies the water count and net charge; pass 2 reloads that topology
+and adds the SPLIT counter-/co-ions computed from those numbers.
+
+### The PBC stage
+
+Each production replica is corrected with the standard five-step `trjconv`
+workflow, using the fixed group names `cluster: Complex`, `center: Complex` and
+`output: System`:
+
+1. `whole` → `_1whole.xtc`
+2. `cluster` → `_2cluster.xtc`
+3. `whole` (zn/ligands) → `_3whole.xtc`
+4. `nojump` with the frame-0 reference → `_4nojump.xtc`
+5. `center` → `_5center.xtc`
+
+The index file it needs is written as `07_pbc/repN/pbc.ndx`; it never
+overwrites an existing `analysis.ndx`. `_5center.xtc` is the canonical
+downstream input for analysis.
+
+### Known limitations
+
+- Histidines must already be renamed to their force-field protonation names
+  (e.g. `HIE`/`HID`/`HIP`); otherwise `tleap` stops.
+- Insertion codes and duplicate (chain, resid) references stop zinc-site
+  resolution.
+- Metals other than zinc are not supported by this pipeline; use MCPB.py.
+- Without a GPU, edit `mdrun.args` in `run.yaml` (the template enables GPU
+  offload); the pipeline passes those arguments through unchanged.
