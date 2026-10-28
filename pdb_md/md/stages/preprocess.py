@@ -52,6 +52,7 @@ class PreprocessStage:
             [
                 sha256_file(cfg.path(cfg.input.structure)),
                 [list(step) for step in cfg.input.preprocess.steps],
+                cfg.input.preprocess.enabled,
             ]
         )
 
