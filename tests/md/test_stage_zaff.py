@@ -43,6 +43,8 @@ def test_two_passes_and_report(tmp_path, make_config, write_script):
     report = json.loads((tmp_path / "01_zaff" / "zaff_report.json").read_text())
     assert (report["salt"]["counter"], report["salt"]["coion"]) == (17, 9)
     assert (tmp_path / "01_zaff" / "leap_pass1.log").exists()
+    p1 = (tmp_path / "01_zaff" / "tleap_zaff.in").read_text()
+    assert "loadpdb" in p1 and "00_input/structure.pdb" in p1
     p2 = (tmp_path / "01_zaff" / "tleap_zaff_pass2.in").read_text()
     assert "addionsrand" in p2 and "solvateBox" not in p2
 

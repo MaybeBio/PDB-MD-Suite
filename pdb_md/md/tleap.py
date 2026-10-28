@@ -121,7 +121,11 @@ def render_pass1_script(
     render bonds: bond positions come from the resolved :class:`SiteCheck`.
     """
     lines = _header_lines(cfg)
-    lines.append("mol = loadpdb {}".format(cfg.path(cfg.input.structure)))
+    # tleap loads the *preprocessed* structure produced by the ``preprocess``
+    # dependency, not the raw ``input.structure`` (which preprocess copies and
+    # may mutate).  The zaff stage validates and reports atom indices against
+    # this same file, so the two must agree.
+    lines.append("mol = loadpdb {}".format(cfg.path("00_input/structure.pdb")))
 
     for site in sites:
         for ligand in site.ligands:
