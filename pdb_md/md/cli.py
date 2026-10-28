@@ -13,7 +13,8 @@ import typer
 
 from .config import RunConfig, load_config
 from .doctor import run_doctor
-from .errors import MdError, PreflightError, StageError
+from .errors import ConfigError, MdError, PreflightError, StageError
+from .templates import TEMPLATE, _DEFAULT_VALUES, render_template, write_config
 from .plan import (
     Action,
     RunContext,
@@ -150,6 +151,79 @@ def _confirm_production(assume_yes: bool, stages: List[Stage]) -> None:
             "use --yes",
             hint="Pass --yes to skip the production confirmation.",
         )
+
+
+# ---------------------------------------------------------------------------
+# ``md init``
+# ---------------------------------------------------------------------------
+
+
+def _prompt_values() -> Dict[str, str]:
+    """Prompt for the configurable template values, in a fixed order.
+
+    ``cation``/``anion`` are deliberately not asked; they keep their defaults.
+    The replicate count drives both ``replicates`` and the generated ``seeds``.
+    """
+
+    values: Dict[str, str] = {}
+    values["run_name"] = typer.prompt(
+        "run name", default=_DEFAULT_VALUES["run_name"]
+    )
+    values["structure"] = typer.prompt(
+        "structure pdb", default=_DEFAULT_VALUES["structure"]
+    )
+    values["gmx"] = typer.prompt("gmx executable", default=_DEFAULT_VALUES["gmx"])
+    values["tleap"] = typer.prompt(
+        "tleap executable", default=_DEFAULT_VALUES["tleap"]
+    )
+    values["parmed_python"] = typer.prompt(
+        "parmed python", default=_DEFAULT_VALUES["parmed_python"]
+    )
+    values["em1_mdp"] = typer.prompt(
+        "em1 mdp", default=_DEFAULT_VALUES["em1_mdp"]
+    )
+    values["em2_mdp"] = typer.prompt(
+        "em2 mdp", default=_DEFAULT_VALUES["em2_mdp"]
+    )
+    values["nvt_mdp"] = typer.prompt(
+        "nvt mdp", default=_DEFAULT_VALUES["nvt_mdp"]
+    )
+    values["npt_mdp"] = typer.prompt(
+        "npt mdp", default=_DEFAULT_VALUES["npt_mdp"]
+    )
+    values["prod_mdp"] = typer.prompt(
+        "prod mdp", default=_DEFAULT_VALUES["prod_mdp"]
+    )
+    count = int(typer.prompt("replicates count", default=_DEFAULT_VALUES["replicates"]))
+    values["replicates"] = str(count)
+    values["seeds"] = ", ".join(str(10000 * i + i) for i in range(1, count + 1))
+    values["salt_concentration"] = typer.prompt(
+        "salt concentration (M)", default=_DEFAULT_VALUES["salt_concentration"]
+    )
+    return values
+
+
+@md_app.command("init")
+def init_cmd(
+    output: Path = typer.Option("run.yaml", "--output", "-o", help="Path to write."),
+    template: bool = typer.Option(
+        False, "--template", help="Write the template with defaults, no prompts."
+    ),
+    force: bool = typer.Option(False, "--force", help="Overwrite an existing file."),
+):
+    """Generate a run.yaml template or walk through an interactive setup."""
+
+    try:
+        if template:
+            values = dict(_DEFAULT_VALUES)
+        else:
+            values = dict(_DEFAULT_VALUES)
+            values.update(_prompt_values())
+        write_config(output, values, force)
+        typer.echo("Next: pdb-md md doctor {}".format(output))
+    except MdError as exc:
+        _report_error(exc)
+        raise typer.Exit(exc.exit_code)
 
 
 # ---------------------------------------------------------------------------
