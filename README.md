@@ -13,10 +13,9 @@ Alongside it, <code>select</code>, <code>res-rename</code>, <code>termini-rm5p</
 <code>neighbor</code>, and <code>restrain</code> cover the everyday structure-prep chores.
 </p>
 
-![Illustrative MD simulation curves — EM, NVT/NPT equilibration, production RMSD, and Zn–ligand distances](./figs/dashboard.png)
+<img src="./figs/pipeline.png" alt="The pdb-md md pipeline: preprocess → zaff → topology → em → nvt → npt → prod → pbc" width="30%" />
 
-<img src="./figs/pipeline.png" alt="The pdb-md md pipeline: preprocess → zaff → topology → em → nvt → npt → prod → pbc" height="340" />
-<img src="./figs/analysis.png" alt="Deeper dynamics analysis — tICA projection, free energy surface, Markov state model, and PMF" height="340" />
+<img src="./figs/dashboard.png" alt="Illustrative MD simulation curves — EM, NVT/NPT equilibration, production RMSD, and Zn–ligand distances" height="400" /> <img src="./figs/analysis.png" alt="Deeper dynamics analysis — tICA projection, free energy surface, Markov state model, and PMF" height="400" />
 
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB.svg?logo=python&logoColor=white)](#installation)
