@@ -1,9 +1,51 @@
-# 🔬 PDB/MMCIF toolkit in Molecular Dynamic Simulation workflows
+<div align="center">
+
+# 🧬 pdb-md
+
+**A reproducible, end-to-end GROMACS MD pipeline for DNA + zinc-finger complexes —**
+**plus a PDB/MMCIF pre-/post-processing toolkit.**
+
+<p>
+From a prepared PDB/MMCIF structure to a PBC-corrected trajectory in one command:
+<code>zaff</code> → <code>topology</code> → EM/NVT/NPT → production → PBC correction —
+each stage resumable, hashed against its inputs, and skippable when nothing changed.
+Alongside it, <code>select</code>, <code>res-rename</code>, <code>termini-rm5p</code>,
+<code>neighbor</code>, and <code>restrain</code> cover the everyday structure-prep chores.
+</p>
+
+[![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB.svg?logo=python&logoColor=white)](#installation)
+[![Commands](https://img.shields.io/badge/Commands-6-0366d6.svg)](#-features)
+[![Version](https://img.shields.io/badge/Version-0.6.0-f59e0b.svg)](#installation)
+
+<p>
+  <a href="#installation">Installation</a> ·
+  <a href="#usage">Usage</a> ·
+  <a href="#-features">Features</a> ·
+  <a href="#-end-to-end-md-pipeline-pdb-md-md">MD Pipeline</a> ·
+  <a href="#prerequisites">Prerequisites</a>
+</p>
+
+</div>
 
 > [!WARNING]
 > Formerly published on PyPI as `pdb-select`. That name is deprecated — use `pdb-md`.
 
-> Pre- and post-processing toolkit for PDB/MMCIF structure files in molecular dynamics workflows.  
+> **If this project helps you, please consider giving it a Star ⭐. Thank you!**
+
+---
+
+## 🚀 Features
+
+- **End-to-end MD pipeline** (`pdb-md md`) — `init` → `doctor` → `run --yes` turns a prepared structure into a PBC-corrected trajectory: ZAFF (four-coordinate bonded zinc) → LEaP topology → ParmEd conversion to GROMACS → EM → NVT/NPT equilibration → production → PBC correction. Every stage is resumable and hashed against its inputs, so re-runs skip unchanged work.
+- **Zinc-site validation** — each `zinc_sites` entry is checked against the structure (four-coordinate ZAFF requirement, Zn–ligand distance window) before `tleap`, then re-mapped through LEaP residue positions so the topology reports the correct atom indices.
+- **Structure selection** (`select`) — extract chains, residue ranges, and HETATM/heterogens from PDB or MMCIF.
+- **Termini cleanup** (`termini-rm5p`) — remove 5'-terminal phosphate groups from nucleic acids.
+- **Residue renaming** (`res-rename`) — rename residues (e.g. `HIS` → `HIE`/`HID`/`HIP`, `CYS` → `CYM`) to a force field's protonation-state naming.
+- **Neighbor search** (`neighbor`) — find every atom within a distance of a given atom.
+- **Position restraints** (`restrain`) — generate heavy-atom position-restraint `.itp` files and a patched topology.
+
+---
 
 # Prerequisites
 
