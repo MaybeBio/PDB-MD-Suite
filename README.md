@@ -15,7 +15,8 @@ Alongside it, <code>select</code>, <code>res-rename</code>, <code>termini-rm5p</
 
 ![Illustrative MD simulation curves — EM, NVT/NPT equilibration, production RMSD, and Zn–ligand distances](./figs/dashboard.png)
 
-<img src="./figs/pipeline.png" alt="The pdb-md md pipeline: preprocess → zaff → topology → em → nvt → npt → prod → pbc" width="42%" />
+<img src="./figs/pipeline.png" alt="The pdb-md md pipeline: preprocess → zaff → topology → em → nvt → npt → prod → pbc" height="340" />
+<img src="./figs/analysis.png" alt="Deeper dynamics analysis — tICA projection, free energy surface, Markov state model, and PMF" height="340" />
 
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB.svg?logo=python&logoColor=white)](#installation)
