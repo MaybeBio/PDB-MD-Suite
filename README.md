@@ -13,10 +13,17 @@ Alongside it, <code>select</code>, <code>res-rename</code>, <code>termini-rm5p</
 <code>neighbor</code>, and <code>restrain</code> cover the everyday structure-prep chores.
 </p>
 
+![Illustrative MD simulation curves — EM, NVT/NPT equilibration, production RMSD, and Zn–ligand distances](./figs/dashboard.png)
+
+<img src="./figs/pipeline.png" alt="The pdb-md md pipeline: preprocess → zaff → topology → em → nvt → npt → prod → pbc" width="42%" />
+
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB.svg?logo=python&logoColor=white)](#installation)
+[![PyPI version](https://img.shields.io/pypi/v/pdb-md.svg)](https://pypi.org/project/pdb-md/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/pdb-md.svg)](https://pypi.org/project/pdb-md/)
+[![GitHub stars](https://img.shields.io/github/stars/MaybeBio/PDB-MD-Suite.svg?style=social)](https://github.com/MaybeBio/PDB-MD-Suite)
 [![Commands](https://img.shields.io/badge/Commands-6-0366d6.svg)](#-features)
-[![Version](https://img.shields.io/badge/Version-0.6.0-f59e0b.svg)](#installation)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
 <p>
   <a href="#installation">Installation</a> ·
